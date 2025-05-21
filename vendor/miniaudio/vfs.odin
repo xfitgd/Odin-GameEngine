@@ -49,9 +49,9 @@ default_vfs :: struct {
 	allocationCallbacks: allocation_callbacks, /* Only used for the wchar_t version of open() on non-Windows platforms. */
 }
 
-ma_read_proc :: proc "c" (pUserData: rawptr, pBufferOut: rawptr, bytesToRead: c.size_t, pBytesRead: ^c.size_t) -> result
-ma_seek_proc :: proc "c" (pUserData: rawptr, offset: i64, origin: seek_origin) -> result
-ma_tell_proc :: proc "c" (pUserData: rawptr, pCursor: ^i64) -> result
+ma_read_proc :: #type proc "c" (pUserData: rawptr, pBufferOut: rawptr, bytesToRead: c.size_t, pBytesRead: ^c.size_t) -> result
+ma_seek_proc :: #type proc "c" (pUserData: rawptr, offset: i64, origin: seek_origin) -> result
+ma_tell_proc :: #type proc "c" (pUserData: rawptr, pCursor: ^i64) -> result
 
 
 @(default_calling_convention="c", link_prefix="ma_")
