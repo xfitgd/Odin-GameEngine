@@ -2,54 +2,21 @@ package glfw_bindings
 
 import "core:c"
 import vk "vendor:vulkan"
+import "base:library"
 
-GLFW_SHARED :: #config(GLFW_SHARED, ODIN_OS != .Windows && ODIN_OS != .Darwin)
-
-when ODIN_OS == .Windows {
-	when GLFW_SHARED {
-		foreign import glfw {
-			"../lib/glfw3dll.lib",
-			"system:user32.lib", 
-			"system:gdi32.lib", 
-			"system:shell32.lib",
-		}
-	} else {
-		foreign import glfw {
-			"../lib/glfw3_mt.lib",
-			"system:user32.lib",
-			"system:gdi32.lib",
-			"system:shell32.lib",
-		}
-	}
-} else when ODIN_OS == .Darwin {
-	when GLFW_SHARED {
-		foreign import glfw {
-			"system:glfw",
-			"system:Cocoa.framework",
-			"system:IOKit.framework",
-			"system:OpenGL.framework",
-		}
-	} else {
-		foreign import glfw { 
-			"../lib/darwin/libglfw3.a",
-			"system:Cocoa.framework",
-			"system:IOKit.framework",
-			"system:OpenGL.framework",
-		}
-	}
-} else {
-	when GLFW_SHARED {
-		foreign import glfw "system:glfw"
-	} else {
-		@(private)
-		LIBGLFW3 :: "../lib/libglfw3.a"
-		when !#exists(LIBGLFW3) {
-			#panic("Could not find the static glfw library, add it at \"" + ODIN_ROOT + "vendor/glfw/lib/\"`")
-		}
-
-		foreign import glfw { LIBGLFW3 }
-	}
+GLFW_SHARED :: #config(GLFW_SHARED, false)
+when GLFW_SHARED {
+	#panic("Shared linking for glfw is not supported yet")
 }
+
+
+is_android :: ODIN_PLATFORM_SUBTARGET == .Android
+is_mobile :: is_android
+
+when !is_mobile {
+LIBGLFW3 :: "../" + library.LIBPATH + "/libglfw3" + library.ARCH_end
+
+foreign import glfw { LIBGLFW3 }
 
 #assert(size_of(c.int) == size_of(b32))
 
@@ -218,3 +185,4 @@ foreign glfw {
 	PlatformSupported :: proc(platform: c.int) -> b32 ---
 }
 
+}

@@ -1,7 +1,7 @@
 package miniaudio
 
 import "core:c"
-import "../../xlibrary"
+import "base:library"
 
 MINIAUDIO_SHARED :: #config(MINIAUDIO_SHARED, false)
 
@@ -9,7 +9,7 @@ when MINIAUDIO_SHARED {
 	#panic("Shared linking for miniaudio is not supported yet")
 }
 
-LIB :: xlibrary.EXTERNAL_LIBPATH + "/miniaudio/libminiaudio" + xlibrary.ARCH_end
+LIB :: library.LIBPATH + "/libminiaudio" + library.ARCH_end
 
 foreign import lib {
 	LIB,

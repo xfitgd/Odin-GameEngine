@@ -3,9 +3,9 @@ package vendor_zlib
 import "core:c"
 
 when ODIN_OS == .Windows {
-	foreign import zlib "libz.lib"
+	foreign import zlib "libz.lib"//TODO !add library in repo later
 } else when ODIN_OS == .Linux {
-	foreign import zlib "system:z"
+	foreign import zlib "system:z"//TODO !add static library in repo later
 } else {
 	foreign import zlib "system:z"
 }

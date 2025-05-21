@@ -296,3 +296,5 @@ build.sh
 *.rdi
 tests/issues/build/*
 misc/featuregen/featuregen
+
+ols
