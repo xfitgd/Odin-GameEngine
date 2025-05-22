@@ -3,13 +3,7 @@ package stb_image
 import "core:c"
 
 @(private)
-LIB :: (
-	     "../lib/stb_image.lib"      when ODIN_OS == .Windows
-	else "../lib/stb_image.a"        when ODIN_OS == .Linux
-	else "../lib/darwin/stb_image.a" when ODIN_OS == .Darwin
-	else "../lib/stb_image_wasm.o"   when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32
-	else ""
-)
+LIB :: ""//TODO
 
 when LIB != "" {
 	when !#exists(LIB) {

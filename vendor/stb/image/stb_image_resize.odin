@@ -3,13 +3,7 @@ package stb_image
 import "core:c"
 
 @(private)
-RESIZE_LIB :: (
-	     "../lib/stb_image_resize.lib"      when ODIN_OS == .Windows
-	else "../lib/stb_image_resize.a"        when ODIN_OS == .Linux
-	else "../lib/darwin/stb_image_resize.a" when ODIN_OS == .Darwin
-	else "../lib/stb_image_resize_wasm.o"   when ODIN_ARCH == .wasm32 || ODIN_ARCH == .wasm64p32
-	else ""
-)
+RESIZE_LIB :: ""//TODO
 
 when RESIZE_LIB != "" {
 	when !#exists(RESIZE_LIB) {
