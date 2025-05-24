@@ -61,12 +61,12 @@ FontRenderRange :: struct {
 
 @(private="file") _Init_FreeType :: proc "contextless" () {
     err := freetype.init_free_type(&freetypeLib)
-    if err != .Ok do panicLog(err)
+    if err != .Ok do trace.panic_log(err)
 }
 
 @(private) _Deinit_FreeType :: proc "contextless" () {
     err := freetype.done_free_type(freetypeLib)
-    if err != .Ok do panicLog(err)
+    if err != .Ok do trace.panic_log(err)
     freetypeLib = nil
 }
 
@@ -101,7 +101,7 @@ Font_Deinit :: proc(self:^Font) -> (err : freetype.Error = .Ok) {
     sync.mutex_lock(&self_.mutex)
 
     err = freetype.done_face(self_.face)
-    if err != .Ok do panicLog(err)
+    if err != .Ok do trace.panic_log(err)
 
     for key,value in self_.charArray {
         RawShape_Free(value.rawShape, vkDefAllocator)
@@ -297,7 +297,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
         for {
             fIdx := freetype.get_char_index(self.face, auto_cast ch)
             if fIdx == 0 {
-                if ch == '□' do panicLog("not found □")
+                if ch == '□' do trace.panic_log("not found □")
                 ok = '□' in self.charArray
                 if ok {
                     charD = &self.charArray['□']
@@ -308,7 +308,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
                 continue
             }
             err := freetype.load_glyph(self.face, fIdx, {.No_Bitmap})
-            if err != .Ok do panicLog(err)
+            if err != .Ok do trace.panic_log(err)
 
             if self.face.glyph.outline.n_points == 0 {
                 charData : CharData = {
@@ -327,11 +327,11 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
             }
         
             poly : Shapes = {
-                nPolys = make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
-                nTypes = make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
-                types = make_non_zeroed([]CurveType, self.face.glyph.outline.n_points*3),
-                poly = make_non_zeroed([]PointF, self.face.glyph.outline.n_points*3),
-                colors = make_non_zeroed([]Point3DwF, self.face.glyph.outline.n_contours),
+                nPolys = mem.make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
+                nTypes = mem.make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
+                types = mem.make_non_zeroed([]CurveType, self.face.glyph.outline.n_points*3),
+                poly = mem.make_non_zeroed([]PointF, self.face.glyph.outline.n_points*3),
+                colors = mem.make_non_zeroed([]Point3DwF, self.face.glyph.outline.n_contours),
             }
             for &c in poly.colors {
                 c = Point3DwF{0,0,0,1}//?no matter
@@ -353,7 +353,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
             }
         
             err = freetype.outline_decompose(&self.face.glyph.outline, &funcs, &data)
-            if err != .Ok do panicLog(err)
+            if err != .Ok do trace.panic_log(err)
 
             charData : CharData
             if data.idx == 0 {

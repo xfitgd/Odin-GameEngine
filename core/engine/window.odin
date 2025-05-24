@@ -1,6 +1,8 @@
 package engine
 
 import "core:sync"
+import "core:debug/trace"
+import "core:math/linalg"
 
 @(private) __windowWidth: Maybe(u32)
 @(private) __windowHeight: Maybe(u32)
@@ -45,7 +47,7 @@ ScreenOrientation :: enum {
 }
 
 MonitorInfo :: struct {
-	rect:       RectI,
+	rect:       linalg.RectI,
 	refreshRate: u32,
 	name:       string,
 	isPrimary:  bool,
@@ -95,29 +97,29 @@ SetWindowMode :: proc "contextless" () {
 }
 MonitorLock :: proc "contextless" () {
 	sync.mutex_lock(&monitorsMtx)
-	if monitorLocked do panicLog("already monitorLocked locked")
+	if monitorLocked do trace.panic_log("already monitorLocked locked")
 	monitorLocked = true
 }
 MonitorUnlock :: proc "contextless" () {
-	if !monitorLocked do panicLog("already monitorLocked unlocked")
+	if !monitorLocked do trace.panic_log("already monitorLocked unlocked")
 	monitorLocked = false
 	sync.mutex_unlock(&monitorsMtx)
 }
 
 GetMonitors :: proc "contextless" () -> []MonitorInfo {
-	if !monitorLocked do panicLog("call inside monitorLock")
+	if !monitorLocked do trace.panic_log("call inside monitorLock")
 	return monitors[:len(monitors)]
 }
 
 GetCurrentMonitor :: proc "contextless" () -> ^MonitorInfo {
-	if !monitorLocked do panicLog("call inside monitorLock")
+	if !monitorLocked do trace.panic_log("call inside monitorLock")
 	return currentMonitor
 }
 
 GetMonitorFromWindow :: proc "contextless" () -> ^MonitorInfo #no_bounds_check {
-	if !monitorLocked do panicLog("call inside monitorLock")
+	if !monitorLocked do trace.panic_log("call inside monitorLock")
 	for &value in monitors {
-		if Rect_PointIn(value.rect, [2]i32{__windowX.?, __windowY.?}) do return &value
+		if linalg.Rect_PointIn(value.rect, [2]i32{__windowX.?, __windowY.?}) do return &value
 	}
 	return primaryMonitor
 }

@@ -1,10 +1,11 @@
 #+private
-package graphics
+package engine
 
 import "base:runtime"
 import "core:container/intrusive/list"
 import "core:math"
 import "core:mem"
+import "core:debug/trace"
 import "base:intrinsics"
 import "core:slice"
 import "core:sync"
@@ -198,9 +199,9 @@ vkDefAllocator : runtime.Allocator
 vkAllocatorInit :: proc() {
 	vkDefAllocator = runtime.default_allocator()
 
-	gVkMemBufs = make_non_zeroed([dynamic]^VkMemBuffer, vkDefAllocator)
+	gVkMemBufs = mem.make_non_zeroed([dynamic]^VkMemBuffer, vkDefAllocator)
 
-	gVkMemIdxCnts = make_non_zeroed([]uint, vkPhysicalMemProp.memoryTypeCount, vkDefAllocator)
+	gVkMemIdxCnts = mem.make_non_zeroed([]uint, vkPhysicalMemProp.memoryTypeCount, vkDefAllocator)
 	mem.zero_slice(gVkMemIdxCnts)
 
 	mem.dynamic_arena_init(&__arena, vkDefAllocator, vkDefAllocator, mem.Megabyte * 4, 0)
@@ -231,14 +232,14 @@ vkAllocatorInit :: proc() {
 	}
 	vk.CreateFence(vkDevice, &fenceInfo, nil, &gFence)
 
-	opQueue = make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
-	opSaveQueue = make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
-	opMapQueue = make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
-	opAllocQueue = make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
-	opDestroyQueue = make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
-	gVkUpdateDesciptorSetList = make_non_zeroed([dynamic]vk.WriteDescriptorSet, vkArenaAllocator)
+	opQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
+	opSaveQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
+	opMapQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
+	opAllocQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
+	opDestroyQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
+	gVkUpdateDesciptorSetList = mem.make_non_zeroed([dynamic]vk.WriteDescriptorSet, vkArenaAllocator)
 
-	gAllocObjects = make_non_zeroed([dynamic]ALLOC_OBJ, vkDefAllocator)
+	gAllocObjects = mem.make_non_zeroed([dynamic]ALLOC_OBJ, vkDefAllocator)
 }
 
 vkAllocatorDestroy :: proc() {
@@ -307,7 +308,7 @@ vkFindMemType :: proc "contextless" (
 
 
 	if memBuf.cache {
-		memBuf.allocateInfo.allocationSize = ceilUp(len * cellSize, vkNonCoherentAtomSize)
+		memBuf.allocateInfo.allocationSize = math.ceil_up(len * cellSize, vkNonCoherentAtomSize)
 		memBuf.len = memBuf.allocateInfo.allocationSize / cellSize
 	}
 
@@ -335,10 +336,10 @@ vkFindMemType :: proc "contextless" (
 		typeFilter,
 		vk.MemoryPropertyFlags{.DEVICE_LOCAL},
 	)
-	if !success do panicLog("memBuf.allocateInfo.memoryTypeIndex, success = vkFindMemType(typeFilter, vk.MemoryPropertyFlags{.DEVICE_LOCAL})")
+	if !success do trace.panic_log("memBuf.allocateInfo.memoryTypeIndex, success = vkFindMemType(typeFilter, vk.MemoryPropertyFlags{.DEVICE_LOCAL})")
 
 	res := vk.AllocateMemory(vkDevice, &memBuf.allocateInfo, nil, &memBuf.deviceMem)
-	if res != .SUCCESS do panicLog("res := vk.AllocateMemory(vkDevice, &memBuf.allocateInfo, nil, &memBuf.deviceMem)")
+	if res != .SUCCESS do trace.panic_log("res := vk.AllocateMemory(vkDevice, &memBuf.allocateInfo, nil, &memBuf.deviceMem)")
 
 	return memBuf
 }
@@ -375,13 +376,13 @@ VkAllocatorError :: enum {
 	VkMemBuffer_BindBufferNodeInside :: proc(self: ^VkMemBuffer, vkResource: $T, idx: VkSize) where T == vk.Buffer || T == vk.Image {
 		when (T == vk.Buffer) {
 			res := vk.BindBufferMemory(vkDevice, vkResource, self.deviceMem, self.cellSize * idx)
-			if res != .SUCCESS do panicLog("VkMemBuffer_BindBufferNodeInside BindBufferMemory : ", res)
+			if res != .SUCCESS do trace.panic_log("VkMemBuffer_BindBufferNodeInside BindBufferMemory : ", res)
 		} else when (T == vk.Image) {
 			res := vk.BindImageMemory(vkDevice, vkResource, self.deviceMem, self.cellSize * idx)
-			if res != .SUCCESS do panicLog("VkMemBuffer_BindBufferNodeInside BindImageMemory : ", res)
+			if res != .SUCCESS do trace.panic_log("VkMemBuffer_BindBufferNodeInside BindImageMemory : ", res)
 		}
 	}
-	if cellCnt == 0 do panicLog("if cellCnt == 0")
+	if cellCnt == 0 do trace.panic_log("if cellCnt == 0")
 	if self.single {
 		VkMemBuffer_BindBufferNodeInside(self, vkResource, 0)
 		return nil, .NONE
@@ -412,7 +413,7 @@ VkAllocatorError :: enum {
 	} else {
 		if remain > 0 {
 			if !curNext.free || curNext.idx < cur.idx {
-				xlist.insert_after(&self.list, auto_cast cur, auto_cast new(VkMemBufferNode))
+				list.insert_after(&self.list, auto_cast cur, auto_cast new(VkMemBufferNode))
 				next: ^VkMemBufferNode = auto_cast cur.node.next
 				next.free = true
 				next.idx = cur.idx + cellCnt
@@ -493,7 +494,7 @@ VkAllocatorError :: enum {
 			return false
 		}
 		if outIdx_ == nil {
-			panicLog("")
+			trace.panic_log("")
 		}
 		outIdx^ = outIdx_
 		memBuf^ = b
@@ -540,7 +541,7 @@ VkAllocatorError :: enum {
 		if !ok {
 			memProp_ = memProp
 			memType, ok = vkFindMemType(memRequire.memoryTypeBits, memProp_)
-			if !ok do panicLog("vkFindMemType Failed")
+			if !ok do trace.panic_log("vkFindMemType Failed")
 		}
 		if !_BindBufferNode(b, memType, vkResource, cellCnt, outIdx, &memBuf) do continue
 		break
@@ -561,21 +562,21 @@ VkAllocatorError :: enum {
 			for b in gVkMemBufs {
 				if b.cellSize != memRequire.alignment do continue
 				memType, ok := vkFindMemType(memRequire.memoryTypeBits, memProp_)
-				if !ok do panicLog("")
+				if !ok do trace.panic_log("")
 				if !_BindBufferNode(b, memType, vkResource, cellCnt, outIdx, &memBuf) do continue
 				break
 			}
 			if memBuf == nil {
 				BLKSize = vkMemBlockLen
 				memBufT = _Init(BLKSize, maxSize_, memRequire, memProp_)
-				if memBufT == nil do panicLog("")
+				if memBufT == nil do trace.panic_log("")
 				memBuf^ = memBufT.?
 			}
 		} else {
 			memBuf^ = memBufT.?
 		}
 
-		if !_BindBufferNode(memBuf, memBuf.allocateInfo.memoryTypeIndex, vkResource, cellCnt, outIdx, &memBuf) do panicLog("")
+		if !_BindBufferNode(memBuf, memBuf.allocateInfo.memoryTypeIndex, vkResource, cellCnt, outIdx, &memBuf) do trace.panic_log("")
 		non_zero_append(&gVkMemBufs, memBuf)
 	}
 	gVkMemIdxCnts[memBuf.allocateInfo.memoryTypeIndex] += 1
@@ -663,9 +664,9 @@ VkBufferResource_CreateBuffer :: proc(
 	if isCopy {
 		copyData:[]byte
 		if allocator == nil {
-			copyData = make_non_zeroed([]byte, len(data.?), vkDefAllocator)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), vkDefAllocator)
 		} else {
-			copyData = make_non_zeroed([]byte, len(data.?), allocator.?)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), allocator.?)
 		}
 		mem.copy(raw_data(copyData), raw_data(data.?), len(data.?))
 		AppendOp(OpCreateBuffer{src = self, data = copyData, allocator = allocator == nil ? vkDefAllocator : allocator.?})
@@ -686,9 +687,9 @@ VkBufferResource_CreateTexture :: proc(
 	if isCopy {
 		copyData:[]byte
 		if allocator == nil {
-			copyData = make_non_zeroed([]byte, len(data.?), vkDefAllocator)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), vkDefAllocator)
 		} else {
-			copyData = make_non_zeroed([]byte, len(data.?), allocator.?)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), allocator.?)
 		}
 		mem.copy(raw_data(copyData), raw_data(data.?), len(data.?))
 		AppendOp(OpCreateTexture{src = self, data = copyData, allocator = allocator == nil ? vkDefAllocator : allocator.?})
@@ -751,9 +752,9 @@ VkBufferResource_CopyUpdateSlice :: #force_inline proc(
 	bytes := mem.slice_to_bytes(data)
 	copyData:[]byte
 	if allocator == nil {
-		copyData = make_non_zeroed([]byte, len(bytes), vkDefAllocator)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), vkDefAllocator)
 	} else {
-		copyData = make_non_zeroed([]byte, len(bytes), allocator.?)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), allocator.?)
 	}
 	intrinsics.mem_copy_non_overlapping(raw_data(copyData), raw_data(bytes), len(bytes))
 
@@ -767,9 +768,9 @@ VkBufferResource_CopyUpdate :: #force_inline proc(
 	copyData:[]byte
 	bytes := mem.ptr_to_bytes(data)
 	if allocator == nil {
-		copyData = make_non_zeroed([]byte, len(bytes), vkDefAllocator)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), vkDefAllocator)
 	} else {
-		copyData = make_non_zeroed([]byte, len(bytes), allocator.?)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), allocator.?)
 	}
 	intrinsics.mem_copy_non_overlapping(raw_data(copyData), raw_data(bytes), len(bytes))
 	VkBufferResource_MapCopy(self, copyData, allocator == nil ? vkDefAllocator : allocator.?)
@@ -844,7 +845,7 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 	last:^VkBufferResource
 	if data != nil && self.option.resourceUsage == .GPU {
 		bufInfo.usage |= {.TRANSFER_DST}
-		if self.option.len > auto_cast len(data.?) do panicLog("create_buffer _data not enough size. ", self.option.len, ", ", len(data.?))
+		if self.option.len > auto_cast len(data.?) do trace.panic_log("create_buffer _data not enough size. ", self.option.len, ", ", len(data.?))
 		
 		last = new(VkBufferResource, vkBufTempArenaAllocator)
 		last^ = {}
@@ -855,11 +856,11 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 			type = .__STAGING,
 		}, data, allocator)
 	} else if self.option.type == .__STAGING {
-		if data == nil do panicLog("staging buffer data can't nil")
+		if data == nil do trace.panic_log("staging buffer data can't nil")
 	}
 
 	res := vk.CreateBuffer(vkDevice, &bufInfo, nil, &self.__resource)
-	if res != .SUCCESS do panicLog("res := vk.CreateBuffer(vkDevice, &bufInfo, nil, &self.__resource) : ", res)
+	if res != .SUCCESS do trace.panic_log("res := vk.CreateBuffer(vkDevice, &bufInfo, nil, &self.__resource) : ", res)
 
 	self.vkMemBuffer = VkMemBuffer_CreateFromResourceSingle(self.__resource) if self.option.single else
 	VkMemBuffer_CreateFromResource(self.__resource, memProp, &self.idx, 0)
@@ -951,7 +952,7 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 	}
 
 	res := vk.CreateImage(vkDevice, &imgInfo, nil, &self.__resource)
-	if res != .SUCCESS do panicLog("res := vk.CreateImage(vkDevice, &bufInfo, nil, &self.__resource) : ", res)
+	if res != .SUCCESS do trace.panic_log("res := vk.CreateImage(vkDevice, &bufInfo, nil, &self.__resource) : ", res)
 
 	self.vkMemBuffer = VkMemBuffer_CreateFromResourceSingle(self.__resource) if self.option.single else
 	VkMemBuffer_CreateFromResource(self.__resource, memProp, &self.idx, 0)
@@ -974,7 +975,7 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 	}
 	
 	res = vk.CreateImageView(vkDevice, &imgViewInfo, nil, &self.imgView)
-	if res != .SUCCESS do panicLog("res = vk.CreateImageView(vkDevice, &imgViewInfo, nil, &self.imgView) : ", res)
+	if res != .SUCCESS do trace.panic_log("res = vk.CreateImageView(vkDevice, &imgViewInfo, nil, &self.imgView) : ", res)
 
 	if data != nil {
 		if self.option.resourceUsage != .GPU {
@@ -994,7 +995,7 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 	//?? no need? execute_register_descriptor_pool
 }
 @(private = "file") __CreateDescriptorPool :: proc(size:[]VkDescriptorPoolSize, out:^VkDescriptorPoolMem) {
-	poolSize :[]vk.DescriptorPoolSize = make_non_zeroed([]vk.DescriptorPoolSize, len(size))
+	poolSize :[]vk.DescriptorPoolSize = mem.make_non_zeroed([]vk.DescriptorPoolSize, len(size))
 	defer delete(poolSize)
 
 	for _, i in size {
@@ -1008,7 +1009,7 @@ VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == V
 		maxSets = vkPoolBlock,
 	}
 	res := vk.CreateDescriptorPool(vkDevice, &poolInfo, nil, &out.pool)
-	if res != .SUCCESS do panicLog("res := vk.CreateDescriptorPool(vkDevice, &poolInfo, nil, &out.pool) : ", res)
+	if res != .SUCCESS do trace.panic_log("res := vk.CreateDescriptorPool(vkDevice, &poolInfo, nil, &out.pool) : ", res)
 }
 
 VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
@@ -1020,7 +1021,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 		if s.__set == 0 {
 			if raw_data(s.size) in gDesciptorPools {
 			} else {
-				gDesciptorPools[raw_data(s.size)] = make_non_zeroed([dynamic]VkDescriptorPoolMem, vkArenaAllocator)
+				gDesciptorPools[raw_data(s.size)] = mem.make_non_zeroed([dynamic]VkDescriptorPoolMem, vkArenaAllocator)
 				non_zero_append(&gDesciptorPools[raw_data(s.size)], VkDescriptorPoolMem{cnt = 0})
 				__CreateDescriptorPool(s.size, &gDesciptorPools[raw_data(s.size)][0])
 			}
@@ -1040,7 +1041,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 				pSetLayouts = &s.layout,
 			}
 			res := vk.AllocateDescriptorSets(vkDevice, &allocInfo, &s.__set)
-			if res != .SUCCESS do panicLog("res := vk.AllocateDescriptorSets(vkDevice, &allocInfo, &s.__set) : ", res)
+			if res != .SUCCESS do trace.panic_log("res := vk.AllocateDescriptorSets(vkDevice, &allocInfo, &s.__set) : ", res)
 		}
 
 		cnt:u32 = 0
@@ -1059,12 +1060,12 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 				case ^VkTextureResource:
 					texCnt += 1
 				case:
-					panicLog("invaild type s.__resources[0:cnt] r")
+					trace.panic_log("invaild type s.__resources[0:cnt] r")
 			}
 		}
 
-		bufs := make_non_zeroed([]vk.DescriptorBufferInfo, bufCnt, vkTempArenaAllocator)
-		texs := make_non_zeroed([]vk.DescriptorImageInfo, texCnt, vkTempArenaAllocator)
+		bufs := mem.make_non_zeroed([]vk.DescriptorBufferInfo, bufCnt, vkTempArenaAllocator)
+		texs := mem.make_non_zeroed([]vk.DescriptorImageInfo, texCnt, vkTempArenaAllocator)
 		bufCnt = 0
 		texCnt = 0
 
@@ -1183,7 +1184,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 
 	ranges: []vk.MappedMemoryRange
 	if self.cache {
-		ranges = make_non_zeroed([]vk.MappedMemoryRange, len(nodes))
+		ranges = mem.make_non_zeroed([]vk.MappedMemoryRange, len(nodes))
 
 		for i in 0 ..< len(nodes) {
 			idx: ^VkMemBufferNode = auto_cast (nodes[i].(OpMapCopy)).resource.idx
@@ -1192,9 +1193,9 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 			ranges[i].offset = idx.idx * self.cellSize
 
 			tmp := ranges[i].offset
-			ranges[i].offset = floorUp(ranges[i].offset, vkNonCoherentAtomSize)
+			ranges[i].offset = math.floor_up(ranges[i].offset, vkNonCoherentAtomSize)
 			ranges[i].size += tmp - ranges[i].offset
-			ranges[i].size = ceilUp(ranges[i].size, vkNonCoherentAtomSize)
+			ranges[i].size = math.ceil_up(ranges[i].size, vkNonCoherentAtomSize)
 
 			startIdx = min(startIdx, ranges[i].offset)
 			endIdx = max(endIdx, ranges[i].offset + ranges[i].size)
@@ -1255,7 +1256,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 	} else {
 		if self.cache {
 			res := vk.InvalidateMappedMemoryRanges(vkDevice, offIdx, raw_data(ranges))
-			if res != .SUCCESS do panicLog("res := vk.InvalidateMappedMemoryRanges(vkDevice, offIdx, raw_data(ranges)) : ", res)
+			if res != .SUCCESS do trace.panic_log("res := vk.InvalidateMappedMemoryRanges(vkDevice, offIdx, raw_data(ranges)) : ", res)
 		}
 	}
 
@@ -1268,7 +1269,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 
 	if self.cache {
 		res := vk.FlushMappedMemoryRanges(vkDevice, auto_cast len(ranges), raw_data(ranges))
-		if res != .SUCCESS do panicLog("res := vk.FlushMappedMemoryRanges(vkDevice, auto_cast len(ranges), raw_data(ranges)) : ", res)
+		if res != .SUCCESS do trace.panic_log("res := vk.FlushMappedMemoryRanges(vkDevice, auto_cast len(ranges), raw_data(ranges)) : ", res)
 	}
 }
 
@@ -1319,7 +1320,7 @@ vkOpExecuteDestroy :: proc() {
 vkWaitAllocatorCmdFence :: #force_inline proc  "contextless" () {
 	if gFenceNeedWait {
 		res := vk.WaitForFences(vkDevice, 1, &gFence, true, max(u64))
-		if res != .SUCCESS do panicLog("res := vk.WaitForFences(vkDevice, 1, &gFence, true, max(u64)) : ", res)
+		if res != .SUCCESS do trace.panic_log("res := vk.WaitForFences(vkDevice, 1, &gFence, true, max(u64)) : ", res)
 		gFenceNeedWait = false
 	}
 }
@@ -1434,7 +1435,7 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 			sType              = .SUBMIT_INFO,
 		}
 		res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, gFence)
-		if res != .SUCCESS do panicLog("res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, 0) : ", res)
+		if res != .SUCCESS do trace.panic_log("res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, 0) : ", res)
 
 		vkWaitAllocatorCmdFence()
 		vkOpExecuteDestroy()

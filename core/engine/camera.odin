@@ -1,4 +1,4 @@
-package graphics
+package engine
 
 import "core:math"
 import "core:mem"
@@ -14,26 +14,26 @@ Camera :: struct {
 }
 
 Camera_InitMatrixRaw :: proc (self:^Camera, mat:linalg.Matrix) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.mat = mat
     __Camera_Init(self)
 }
 
 @private __Camera_Init :: #force_inline proc(self:^Camera) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     VkBufferResource_CreateBuffer(&self.__in.matUniform, {
-        len = size_of(Matrix),
+        len = size_of(linalg.Matrix),
         type = .UNIFORM,
     }, mem.ptr_to_bytes(&self.__in.mat), true)
 }
 
 Camera_Deinit :: proc(self:^Camera) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.matUniform)
 }
 
 Camera_UpdateMatrixRaw :: proc(self:^Camera, _mat:linalg.Matrix) {
-    xmem.ICheckInit_Check(&self.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.checkInit)
     self.__in.mat = _mat
     VkBufferResource_CopyUpdate(&self.__in.matUniform, &self.__in.mat)
 }

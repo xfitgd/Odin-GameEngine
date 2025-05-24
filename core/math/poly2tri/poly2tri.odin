@@ -139,7 +139,7 @@ Trianguate_Error :: enum {
     } else if (p1 == self.pts[0] && p2 == self.pts[1]) || (p1 == self.pts[1] && p2 == self.pts[0]) {
         self.neighbors[2] = target
     } else {
-        trace.panicLog("Triangle_MarkNeighbor2: target not a neighbor")
+        trace.panic_log("Triangle_MarkNeighbor2: target not a neighbor")
     }
 }
 
@@ -370,7 +370,7 @@ Trianguate_Error :: enum {
         t.pts[2] = t.pts[1]
         t.pts[1] = npoint
     } else {
-        trace.panicLog("Triangle_Legalize: opoint not in triangle")
+        trace.panic_log("Triangle_Legalize: opoint not in triangle")
     }
 }
 
@@ -440,7 +440,7 @@ Trianguate_Error :: enum {
             } else if point == node.next.point {
                 node = node.next
             } else {
-                trace.panicLog("AdvancingFront_LocatePoint: point not found")
+                trace.panic_log("AdvancingFront_LocatePoint: point not found")
             }
         }
     } else if px < nx {
@@ -687,7 +687,7 @@ Trianguate_Error :: enum {
 @(require_results, private = "file") EdgeEvent2 :: proc "contextless" (ctx: ^TriangleCtx, ep, eq: ^PointE, triangle: ^Triangle, point: ^PointE) -> (err:Trianguate_Error = .None) {
     triangle_ := triangle
     if triangle_ == nil {
-        trace.panicLog("EdgeEvent2 - null triangle")
+        trace.panic_log("EdgeEvent2 - null triangle")
     }
     
     if IsEdgeSideOfTriangle(triangle_, ep, eq) do return
@@ -738,10 +738,10 @@ Trianguate_Error :: enum {
 
 @(private = "file") FlipEdgeEvent :: proc "contextless" (ctx: ^TriangleCtx, ep, eq: ^PointE, t: ^Triangle, p: ^PointE) -> (err:Trianguate_Error = .None) {
     t_ := t
-    if t_ == nil do trace.panicLog("FlipEdgeEvent - null triangle")
+    if t_ == nil do trace.panic_log("FlipEdgeEvent - null triangle")
     
     ot := Triangle_NeighborAcross(t_, p)
-    if ot == nil do trace.panicLog("FlipEdgeEvent - null neighbor across")
+    if ot == nil do trace.panic_log("FlipEdgeEvent - null neighbor across")
     
     op := Triangle_OppositePoint(ot, t_, p) or_return
   
@@ -968,7 +968,7 @@ TrianguateSinglePolygon :: proc(poly:[]linalg.PointF, baseIdx:[]u32, holes:[][]l
     for i in 1..<len(ctx.pts) {
         node := AdvancingFront_LocateNode(&ctx.front, ctx.pts[i].x)
         if node == nil || node.point == nil || node.next == nil || node.next.point == nil {
-            trace.panicLog("nil Node")
+            trace.panic_log("nil Node")
         }
 
         non_zero_append(&ctx.maps, new_clone(Triangle{pts = [3]^PointE{ctx.pts[i], node.point, node.next.point}}, context.temp_allocator))

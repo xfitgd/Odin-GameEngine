@@ -1,4 +1,4 @@
-package graphics
+package engine
 
 import "core:math"
 import "core:mem"
@@ -96,15 +96,15 @@ Projection_UpdatePerspective :: #force_inline proc(self:^Projection, fov:f32, as
 
 //? uniform object is all small, so use_gcpu_mem is true by default
 @private __Projection_Init :: #force_inline proc(self:^Projection) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
-    mat : Matrix
+    mem.ICheckInit_Init(&self.__in.checkInit)
+    mat : linalg.Matrix
     when is_mobile {
         mat = linalg.matrix_mul(vkRotationMatrix, self.__in.mat)
     } else {
         mat = self.__in.mat
     }
     VkBufferResource_CreateBuffer(&self.__in.matUniform, {
-        len = size_of(Matrix),
+        len = size_of(linalg.Matrix),
         type = .UNIFORM,
         resourceUsage = .CPU,
         single = false,
@@ -112,13 +112,13 @@ Projection_UpdatePerspective :: #force_inline proc(self:^Projection, fov:f32, as
 }
 
 Projection_Deinit :: proc(self:^Projection) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.matUniform)
 }
 
 Projection_UpdateMatrixRaw :: proc(self:^Projection, _mat:linalg.Matrix) {
-    xmem.ICheckInit_Check(&self.__in.checkInit)
-    mat : Matrix
+    mem.ICheckInit_Check(&self.__in.checkInit)
+    mat : linalg.Matrix
     when is_mobile {
         mat = linalg.matrix_mul(vkRotationMatrix, _mat)
     } else {

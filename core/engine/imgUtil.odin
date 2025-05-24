@@ -3,6 +3,7 @@ package engine
 import vk "vendor:vulkan"
 import "base:runtime"
 import "base:intrinsics"
+import "core:debug/trace"
 
 TextureFmt :: enum {
     DefaultColor,
@@ -80,5 +81,5 @@ TextureFmt :: enum {
 		case .R8_UNORM:
 			return .R8Unorm
 	}
-	panicLog("unsupport format vkFmtToTextureFmt : ", t)
+	trace.panic_log("unsupport format vkFmtToTextureFmt : ", t)
 }

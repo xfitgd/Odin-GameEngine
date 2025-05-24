@@ -1,12 +1,12 @@
 #+private
-package graphics
+package engine
 
 import vk "vendor:vulkan"
 import "core:mem"
+import "core:debug/trace"
 import "core:container/intrusive/list"
 import "core:math"
 import "core:c"
-import "../"
 
 VkSize :: vk.DeviceSize
 
@@ -53,7 +53,7 @@ TextureCreateOption :: struct {
     type:TextureType,
     textureUsage:TextureUsages,
     resourceUsage:ResourceUsage,
-    format:engine.TextureFmt,
+    format:TextureFmt,
     samples:u8,
     single:bool,
     useGCPUMem:bool,
@@ -107,7 +107,7 @@ VkTextureResource :: struct {
         case 32: return {._32}
         case 64: return {._64}
     }
-    panicLog("unsupport samples samplesToVkSampleCountFlags : ", samples)
+    trace.panic_log("unsupport samples samplesToVkSampleCountFlags : ", samples)
 }
 
 @(require_results) TextureTypeToVkImageType :: proc "contextless"(t : TextureType) -> vk.ImageType {

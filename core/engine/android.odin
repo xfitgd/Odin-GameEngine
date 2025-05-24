@@ -86,7 +86,7 @@ when is_android {
         }
         res := vkCreateAndroidSurfaceKHR(vkInstance, &androidSurfaceCreateInfo, nil, &vkSurface)
         if res != .SUCCESS {
-            panicLog(res)
+            panic_log(res)
         }
     }
     @(private="file") freeSavedState :: proc "contextless" () {
@@ -142,7 +142,7 @@ when is_android {
 
                 prop : vk.SurfaceCapabilitiesKHR
                 res := vk.GetPhysicalDeviceSurfaceCapabilitiesKHR(vkPhysicalDevice, vkSurface, &prop)
-                if res != .SUCCESS do panicLog(res)
+                if res != .SUCCESS do trace.panic_log(res)
                 if prop.currentExtent.width != vkExtent.width || prop.currentExtent.height != vkExtent.height {
                     sizeUpdated = true
                 }

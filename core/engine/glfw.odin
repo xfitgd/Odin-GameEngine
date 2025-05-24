@@ -4,7 +4,9 @@ package engine
 import "vendor:glfw"
 import "core:reflect"
 import "core:c"
+import "core:mem"
 import "core:sync"
+import "core:debug/trace"
 import "core:os"
 import "core:sys/linux"
 import "core:sys/posix"
@@ -97,11 +99,11 @@ glfwVulkanStart :: proc "contextless" () {
     if vkSurface != 0 do vk.DestroySurfaceKHR(vkInstance, vkSurface, nil)
 
     res := glfw.CreateWindowSurface(vkInstance, wnd, nil, &vkSurface)
-    if (res != .SUCCESS) do panicLog("glfwVulkanStart : ", res)
+    if (res != .SUCCESS) do trace.panic_log("glfwVulkanStart : ", res)
 }
 
 @(private="file") glfwInitMonitors :: proc() {
-    glfwMonitors = make_non_zeroed([dynamic]glfw.MonitorHandle)
+    glfwMonitors = mem.make_non_zeroed([dynamic]glfw.MonitorHandle)
     _monitors := glfw.GetMonitors()
 
     for m in _monitors {
@@ -137,12 +139,12 @@ glfwVulkanStart :: proc "contextless" () {
 
 glfwSystemInit :: proc() {
     res := glfw.Init()
-    if !res do panicLog("glfw.Init : ", res)
+    if !res do trace.panic_log("glfw.Init : ", res)
 
     when ODIN_OS == .Linux {
         name:linux.UTS_Name
 		err := linux.uname(&name)
-        if err != .NONE do panicLog("linux.uname : ", err)
+        if err != .NONE do trace.panic_log("linux.uname : ", err)
 
         linuxPlatform.sysName = strings.clone_from_ptr(&name.sysname[0], bytes.index_byte(name.sysname[:], 0))
         linuxPlatform.nodeName = strings.clone_from_ptr(&name.nodename[0], bytes.index_byte(name.nodename[:], 0))
@@ -157,7 +159,7 @@ glfwSystemInit :: proc() {
 		//TODO
 	}
 
-    if processorCoreLen == 0 do panicLog("processorCoreLen can't zero")
+    if processorCoreLen == 0 do trace.panic_log("processorCoreLen can't zero")
 }
 
 glfwSystemStart :: proc() {
@@ -222,7 +224,7 @@ glfwSystemDestroy :: proc() {
 glfwLoop :: proc() {
     glfwKeyProc :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: c.int) {
         //glfw.KEY_SPACE
-        if key > KEY_SIZE-1 || key < 0 || !xreflect.is_valid_enum_value(KeyCode, key) {
+        if key > KEY_SIZE-1 || key < 0 || !reflect.is_valid_enum_value(KeyCode, key) {
             return
         }
         switch action {

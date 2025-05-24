@@ -290,7 +290,7 @@ _ :: geometry
 _ :: poly2tri
 _ :: collision
 
-//endine
+//engine
 
 import engine "core:engine"
 import components "core:engine/components"

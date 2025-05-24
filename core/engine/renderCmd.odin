@@ -1,5 +1,7 @@
-package graphics
+package engine
 
+import "core:mem"
+import "core:debug/trace"
 import "core:sync"
 import vk "vendor:vulkan"
 
@@ -21,11 +23,11 @@ RenderCmd :: struct {}
 
 RenderCmd_Init :: proc() -> ^RenderCmd {
     cmd := new(__RenderCmd)
-    cmd.scene = make_non_zeroed([dynamic]^IObject)
-    cmd.sceneT = make_non_zeroed([dynamic]^IObject)
+    cmd.scene = mem.make_non_zeroed([dynamic]^IObject)
+    cmd.sceneT = mem.make_non_zeroed([dynamic]^IObject)
     for i in 0..<MAX_FRAMES_IN_FLIGHT {
         cmd.refresh[i] = false
-        cmd.cmds[i] = make_non_zeroed([]vk.CommandBuffer, __swapImgCnt)
+        cmd.cmds[i] = mem.make_non_zeroed([]vk.CommandBuffer, __swapImgCnt)
         allocInfo := vk.CommandBufferAllocateInfo{
             sType = vk.StructureType.COMMAND_BUFFER_ALLOCATE_INFO,
             commandPool = vkCmdPool,
@@ -33,7 +35,7 @@ RenderCmd_Init :: proc() -> ^RenderCmd {
             commandBufferCount = __swapImgCnt,
         }
         res := vk.AllocateCommandBuffers(vkDevice, &allocInfo, &cmd.cmds[i][0])
-        if res != .SUCCESS do panicLog("res = vk.AllocateCommandBuffers(vkDevice, &allocInfo, &cmd.cmds[i][0]) : ", res)
+        if res != .SUCCESS do trace.panic_log("res = vk.AllocateCommandBuffers(vkDevice, &allocInfo, &cmd.cmds[i][0]) : ", res)
     }
     cmd.objLock = sync.RW_Mutex{}
 
@@ -209,5 +211,5 @@ RenderCmd_GetObjects :: proc(cmd: ^RenderCmd) -> []^IObject {
 @private RenderCmd_Create :: proc () {
     sync.mutex_lock(&gRenderCmdMtx)
     defer sync.mutex_unlock(&gRenderCmdMtx)
-    gRenderCmd = make_non_zeroed([dynamic]^__RenderCmd)
+    gRenderCmd = mem.make_non_zeroed([dynamic]^__RenderCmd)
 }

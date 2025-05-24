@@ -211,7 +211,7 @@ LineSplitLine :: proc "contextless" (pts:[2][$N]$T, t:T) -> (outPts1:[2][N]T, ou
     _subdiv :f32 = 0.0,
     _repeat :int = -1) -> ShapesError {
 
-    if _subdiv < 0 do trace.panicLog("_subdiv can't negative.")
+    if _subdiv < 0 do trace.panic_log("_subdiv can't negative.")
 
     curveType := type
     err:ShapesError = .None
@@ -370,7 +370,7 @@ LineSplitLine :: proc "contextless" (pts:[2][$N]$T, t:T) -> (outPts1:[2][N]T, ou
                 }
                 //reverse = true
             case .Unknown:
-                trace.panicLog("GetCubicCurveType: unknown curve type")
+                trace.panic_log("GetCubicCurveType: unknown curve type")
         }
     }
    

@@ -2,7 +2,7 @@ package math
 
 import "base:intrinsics"
 
-ceilUp :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
+ceil_up :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
 	if multiple == 0 do return num
 
 	remain := abs(num) % multiple
@@ -12,7 +12,7 @@ ceilUp :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_i
 	return num + multiple - remain
 }
 
-floorUp :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
+floor_up :: proc "contextless"(num:$T, multiple:T) -> T where intrinsics.type_is_integer(T) {
 	if multiple == 0 do return num
 
 	remain := abs(num) % multiple

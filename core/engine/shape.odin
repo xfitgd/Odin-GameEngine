@@ -1,18 +1,18 @@
-package graphics
+package engine
 
 import "core:math"
+import "core:math/geometry"
 import "core:mem"
 import "core:slice"
 import "core:sync"
 import "core:math/linalg"
-import "core:math/geometry"
 import "base:intrinsics"
 import "base:runtime"
 import vk "vendor:vulkan"
 
 __ShapeSrcIn :: struct {
     //?vertexBuf, indexBuf에 checkInit: ICheckInit 있으므로 따로 필요없음
-    vertexBuf:__VertexBuf(ShapeVertex2D),
+    vertexBuf:__VertexBuf(geometry.ShapeVertex2D),
     indexBuf:__IndexBuf,
 }       
 
@@ -35,11 +35,6 @@ __ShapeIn :: struct {
     Deinit = auto_cast _Super_Shape_Deinit,
 }
 
-ShapeVertex2D :: struct #align(1) {
-    pos: linalg.PointF,
-    uvw: linalg.Point3DF,
-    color: linalg.Point3DwF,
-};
 
 Shape_Init :: proc(self:^Shape, $actualType:typeid, src:^ShapeSrc, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1},
 camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0}, vtable:^IObjectVTable = nil)
@@ -60,16 +55,16 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pi
 }
 
 _Super_Shape_Deinit :: proc(self:^Shape) {
-    xmem.ICheckInit_Deinit(&self.__in.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.__in.matUniform)
 }
 
 Shape_UpdateSrc :: #force_inline proc "contextless" (self:^Shape, src:^ShapeSrc) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in2.src = src
 }
 Shape_GetSrc :: #force_inline proc "contextless" (self:^Shape) -> ^ShapeSrc {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     return self.__in2.src
 }
 Shape_GetCamera :: #force_inline proc "contextless" (self:^Shape) -> ^Camera {
@@ -98,7 +93,7 @@ Shape_UpdateProjection :: #force_inline proc(self:^Shape, projection:^Projection
 }
 
 _Super_Shape_Draw :: proc (self:^Shape, cmd:vk.CommandBuffer) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkShapePipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkShapePipelineLayout, 0, 1, 
@@ -113,15 +108,15 @@ _Super_Shape_Draw :: proc (self:^Shape, cmd:vk.CommandBuffer) {
 }
 
 ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUsage = .GPU, colorFlag:ResourceUsage = .CPU) {
-    rawC := RawShape_Clone(raw, vkDefAllocator)
+    rawC := geometry.RawShape_Clone(raw, vkDefAllocator)
     __VertexBuf_Init(&self.__in.vertexBuf, rawC.vertices, flag)
     __IndexBuf_Init(&self.__in.indexBuf, rawC.indices, flag)
     self.rect = rawC.rect
 }
 
 @require_results ShapeSrc_Init :: proc(self:^ShapeSrc, shapes:^geometry.Shapes, flag:ResourceUsage = .GPU, colorFlag:ResourceUsage = .CPU) -> (err:geometry.ShapesError = .None) {
-    raw : ^RawShape
-    raw, err = Shapes_ComputePolygon(shapes, vkDefAllocator)
+    raw : ^geometry.RawShape
+    raw, err = geometry.Shapes_ComputePolygon(shapes, vkDefAllocator)
     if err != .None do return
 
     __VertexBuf_Init(&self.__in.vertexBuf, raw.vertices, flag)
@@ -132,14 +127,14 @@ ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUs
 }
 
 ShapeSrc_UpdateRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape) {
-    rawC := RawShape_Clone(raw, vkDefAllocator)
+    rawC := geometry.RawShape_Clone(raw, vkDefAllocator)
     __VertexBuf_Update(&self.__in.vertexBuf, rawC.vertices)
     __IndexBuf_Update(&self.__in.indexBuf, rawC.indices)
 }
 
 @require_results ShapeSrc_Update :: proc(self:^ShapeSrc, shapes:^geometry.Shapes) -> (err:geometry.ShapesError = .None) {
-    raw : ^RawShape
-    raw, err = Shapes_ComputePolygon(shapes, vkDefAllocator)
+    raw : ^geometry.RawShape
+    raw, err = geometry.Shapes_ComputePolygon(shapes, vkDefAllocator)
     if err != .None do return
 
     __VertexBuf_Update(&self.__in.vertexBuf, raw.vertices)

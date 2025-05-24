@@ -105,8 +105,7 @@ when is_android {
 	}
 }
 
-@(private) __depthFmt:TextureFmt
-@(private) __swapImgCnt:u32 = 3
+
 
 is_android :: ODIN_PLATFORM_SUBTARGET == .Android
 is_mobile :: is_android
@@ -185,8 +184,7 @@ xfitMain :: proc(
 }
 
 @(private) systemInit :: proc() {
-	xfmt.Start()
-	monitors = make_non_zeroed([dynamic]MonitorInfo)
+	monitors = mem.make_non_zeroed([dynamic]MonitorInfo)
 	when is_android {
 		//TODO
 	} else {
@@ -219,7 +217,6 @@ xfitMain :: proc(
 	}
 }
 @(private) systemAfterDestroy :: proc() {
-	xfmt.Destroy()
 	delete(monitors)
 }
 

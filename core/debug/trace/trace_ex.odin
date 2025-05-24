@@ -67,7 +67,7 @@ printTraceBuf :: proc(str:^strings.Builder) {
 	}
 }
 
-@(cold) panicLog :: proc "contextless" (args: ..any, loc := #caller_location) -> ! {
+@(cold) panic_log :: proc "contextless" (args: ..any, loc := #caller_location) -> ! {
 	context = runtime.default_context()
 	when !is_android {
 		str: strings.Builder

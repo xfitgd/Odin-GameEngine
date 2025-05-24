@@ -64,14 +64,14 @@ SoundSrc :: struct {
     miniaudio_resourceManagerConfig.pCustomDecodingBackendUserData = nil
 
     res := miniaudio.resource_manager_init(&miniaudio_resourceManagerConfig, &miniaudio_resourceManager)
-    if res != .SUCCESS do trace.panicLog("miniaudio.resource_manager_init : ", res)
+    if res != .SUCCESS do trace.panic_log("miniaudio.resource_manager_init : ", res)
 
     miniaudio_engineConfig = miniaudio.engine_config_init()
     miniaudio_engineConfig.pResourceManager = &miniaudio_resourceManager
     
     
     res = miniaudio.engine_init(&miniaudio_engineConfig, &miniaudio_engine)
-    if res != .SUCCESS do trace.panicLog("miniaudio.engine_init : ", res)
+    if res != .SUCCESS do trace.panic_log("miniaudio.engine_init : ", res)
 
     started = true
     gThread = thread.create(Callback)
@@ -124,7 +124,7 @@ Sound_Deinit :: proc(self:^Sound) {
 }
 
 @(fini) g_deinit :: proc() {
-    if !intrinsics.atomic_load_explicit(&started, .Acquire) do trace.panicLog("sound not started. can't destory")
+    if !intrinsics.atomic_load_explicit(&started, .Acquire) do trace.panic_log("sound not started. can't destory")
     intrinsics.atomic_store_explicit(&started, false, .Release)
     sync.sema_post(&gSema)
     thread.join(gThread)
@@ -152,7 +152,7 @@ SoundSrc_Deinit :: proc(self:^SoundSrc) {
 }
 
 SoundSrc_PlaySoundMemory :: proc(self:^SoundSrc, volume:f32, loop:bool) -> (snd: ^Sound, err: SoundError) {
-    if !intrinsics.atomic_load_explicit(&started, .Acquire) do trace.panicLog("SoundSrc_PlaySoundMemory : sound not started.")
+    if !intrinsics.atomic_load_explicit(&started, .Acquire) do trace.panic_log("SoundSrc_PlaySoundMemory : sound not started.")
 
     err = .SUCCESS
     snd = new(Sound)
@@ -197,52 +197,52 @@ SetPitch :: #force_inline proc "contextless" (self:^Sound, pitch:f32) {
 
 Pause :: #force_inline proc "contextless" (self:^Sound) {
     res := miniaudio.sound_stop(&self.__private.__miniaudio_sound)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
 }
 
 Resume :: #force_inline proc "contextless" (self:^Sound) {
    res := miniaudio.sound_start(&self.__private.__miniaudio_sound)
-   if res != .SUCCESS do trace.panicLog(res)
+   if res != .SUCCESS do trace.panic_log(res)
 }
 
 @require_results GetLenSec :: #force_inline proc "contextless" (self:^Sound) -> f32 {
     sec:f32
     res := miniaudio.sound_get_length_in_seconds(&self.__private.__miniaudio_sound, &sec)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
     return sec
 }
 
 @require_results GetLen :: #force_inline proc "contextless" (self:^Sound) -> u64 {
     frames:u64
     res := miniaudio.sound_get_length_in_pcm_frames(&self.__private.__miniaudio_sound, &frames)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
     return frames
 }
 
 @require_results GetPosSec :: #force_inline proc "contextless" (self:^Sound) -> f32 {
     sec:f32
     res := miniaudio.sound_get_cursor_in_seconds(&self.__private.__miniaudio_sound, &sec)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
     return sec
 }
 
 @require_results GetPos :: #force_inline proc "contextless" (self:^Sound) -> u64 {
     frames:u64
     res := miniaudio.sound_get_cursor_in_pcm_frames(&self.__private.__miniaudio_sound, &frames)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
     return frames
 }
 
 SetPos :: #force_inline proc "contextless" (self:^Sound, pos:u64) {
     res := miniaudio.sound_seek_to_pcm_frame(&self.__private.__miniaudio_sound, pos)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
 }
 
 SetPosSec :: #force_inline proc "contextless" (self:^Sound, posSec:f32) -> bool {
     pos:u64 = u64(f64(posSec) * f64(self.src.sampleRate))
     if pos >= GetLen(self) do return false
     res := miniaudio.sound_seek_to_pcm_frame(&self.__private.__miniaudio_sound, pos)
-    if res != .SUCCESS do trace.panicLog(res)
+    if res != .SUCCESS do trace.panic_log(res)
     return true
 }
 

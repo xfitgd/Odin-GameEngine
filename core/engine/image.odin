@@ -1,4 +1,4 @@
-package graphics
+package engine
 
 import "core:math"
 import "core:mem"
@@ -108,7 +108,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 }
 
 _Super_Image_Deinit :: proc(self:^Image) {
-    xmem.ICheckInit_Deinit(&self.__in.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.__in.matUniform)
 }
 
@@ -144,8 +144,8 @@ Image_UpdateColorTransform :: #force_inline proc(self:^Image, colorTransform:^Co
 }
 
 _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
-    xmem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkTexPipelineLayout, 0, 2, 
@@ -177,7 +177,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 }   
 
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
-    xmem.ICheckInit_Deinit(&self.__in.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.__in.matUniform)
 }
 
@@ -212,8 +212,8 @@ AnimateImage_UpdateProjection :: #force_inline proc(self:^AnimateImage, projecti
     IObject_UpdateProjection(self, projection)
 }
 _Super_AnimateImage_Draw :: proc (self:^AnimateImage, cmd:vk.CommandBuffer) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
-    xmem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkAnimateTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkAnimateTexPipelineLayout, 0, 2, 
@@ -244,7 +244,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 }   
 
 _Super_TileImage_Deinit :: proc(self:^TileImage) {
-    xmem.ICheckInit_Deinit(&self.__in.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.__in.matUniform)
 }
 
@@ -280,8 +280,8 @@ TileImage_UpdateTransformMatrixRaw :: #force_inline proc(self:^TileImage, _mat:l
 }
 
 _Super_TileImage_Draw :: proc (self:^TileImage, cmd:vk.CommandBuffer) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
-    xmem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkAnimateTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkAnimateTexPipelineLayout, 0, 2, 
@@ -292,7 +292,7 @@ _Super_TileImage_Draw :: proc (self:^TileImage, cmd:vk.CommandBuffer) {
 
 
 Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pixels:Maybe([]byte), sampler:vk.Sampler = 0, resourceUsage:ResourceUsage = .GPU) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
     self.__in.set.bindings = __singlePoolBinding[:]
     self.__in.set.size = __singleSamplerPoolSizes[:]
@@ -318,7 +318,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
 
 //sampler nil default //TODO
 // Texture_InitR8 :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-//     xmem.ICheckInit_Init(&self.__in.checkInit)
+//     mem.ICheckInit_Init(&self.__in.checkInit)
 //     self.__in.sampler = 0
 //     self.__in.set.bindings = nil
 //     self.__in.set.size = nil
@@ -341,7 +341,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
 
 
 Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = 0
     self.__in.set.bindings = nil
     self.__in.set.size = nil
@@ -363,7 +363,7 @@ Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int hei
 }
 
 Texture_InitMSAA :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = 0
     self.__in.set.bindings = nil
     self.__in.set.size = nil
@@ -394,7 +394,7 @@ Texture_InitFileData :: proc(self:^Texture, fileData:[]byte, sampler:vk.Sampler 
 
 
 Texture_Deinit :: proc(self:^Texture) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.texture)
 }
 
@@ -420,7 +420,7 @@ Texture_GetSampler :: #force_inline proc "contextless" (self:^Texture) -> vk.Sam
 }
 
 TextureArray_Init :: proc(self:^TextureArray, #any_int width:int, #any_int height:int, #any_int count:int, pixels:Maybe([]byte), sampler:vk.Sampler = 0) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
     self.__in.set.bindings = __singlePoolBinding[:]
     self.__in.set.size = __singleSamplerPoolSizes[:]
@@ -451,7 +451,7 @@ TextureArray_InitFileData :: proc(self:^TextureArray, #any_int width:int, #any_i
 }
 
 TextureArray_Deinit :: #force_inline proc(self:^TextureArray) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.texture)
 }
 TextureArray_Width :: #force_inline proc "contextless" (self:^TextureArray) -> int {
@@ -465,13 +465,13 @@ TextureArray_Count :: #force_inline proc "contextless" (self:^TextureArray) -> i
 }
 
 TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, pixels:[]byte, sampler:vk.Sampler = 0) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
     self.__in.set.bindings = __singlePoolBinding[:]
     self.__in.set.size = __singleSamplerPoolSizes[:]
     self.__in.set.layout = vkTexDescriptorSetLayout2
     self.__in.set.__set = 0
-    self.__in.allocPixels = make_non_zeroed_slice([]byte, count * tile_width * tile_height, vkDefAllocator)
+    self.__in.allocPixels = mem.make_non_zeroed_slice([]byte, count * tile_width * tile_height, vkDefAllocator)
 
     //convert tilemap pixel data format to tile image data format arranged sequentially
     cnt:int
@@ -506,7 +506,7 @@ TileTextureArray_InitFileData :: proc(self:^TileTextureArray, #any_int tile_widt
    //TODO
 }
 TileTextureArray_Deinit :: #force_inline proc(self:^TileTextureArray) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.texture)
 }
 TileTextureArray_Width :: #force_inline proc "contextless" (self:^TileTextureArray) -> int {

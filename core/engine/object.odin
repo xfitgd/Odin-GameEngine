@@ -1,9 +1,10 @@
-package graphics
+package engine
 
 import "core:math"
 import "core:mem"
 import "core:slice"
 import "core:sync"
+import "core:debug/trace"
 import "core:math/linalg"
 import "base:intrinsics"
 import "base:runtime"
@@ -70,20 +71,20 @@ ColorTransform_InitMatrixRaw :: proc(self:^ColorTransform, mat:linalg.Matrix = {
 }
 
 @private __ColorTransform_Init :: #force_inline proc(self:^ColorTransform) {
-    xmem.ICheckInit_Init(&self.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.checkInit)
     VkBufferResource_CreateBuffer(&self.__in.matUniform, {
-        len = size_of(Matrix),
+        len = size_of(linalg.Matrix),
         type = .UNIFORM,
     }, mem.ptr_to_bytes(&self.__in.mat), true)
 }
 
 ColorTransform_Deinit :: proc(self:^ColorTransform) {
-    xmem.ICheckInit_Deinit(&self.__in.checkInit)
+    mem.ICheckInit_Deinit(&self.__in.checkInit)
     VkBufferResource_Deinit(&self.__in.matUniform)
 }
 
 ColorTransform_UpdateMatrixRaw :: proc(self:^ColorTransform, _mat:linalg.Matrix) {
-    xmem.ICheckInit_Check(&self.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.checkInit)
     self.__in.mat = _mat
     VkBufferResource_CopyUpdate(&self.__in.matUniform, &self.__in.mat)
 }
@@ -91,10 +92,10 @@ ColorTransform_UpdateMatrixRaw :: proc(self:^ColorTransform, _mat:linalg.Matrix)
 
 @(require_results)
 SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg.PointF = {1.0, 1.0}, cp:linalg.PointF = {0.0, 0.0}) -> linalg.Matrix4x4f32 {
-	pivot := linalg.matrix4_translate(Point3DF{cp.x,cp.y,0.0})
+	pivot := linalg.matrix4_translate(linalg.Point3DF{cp.x,cp.y,0.0})
 	translation := linalg.matrix4_translate(t)
 	rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
-	scale := linalg.matrix4_scale(Point3DF{s.x,s.y,1.0})
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
 	return linalg.mul(translation, linalg.mul(rotation, linalg.mul(pivot, scale)))
 }
 
@@ -103,7 +104,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
     camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0})
     where actualType != IObject && intrinsics.type_is_subtype_of(actualType, IObject) {
 
-    xmem.ICheckInit_Init(&self.__in.__in.checkInit)
+    mem.ICheckInit_Init(&self.__in.__in.checkInit)
     self.__in.camera = camera
     self.__in.projection = projection
     self.__in.colorTransform = colorTransform == nil ? &__defColorTransform : colorTransform
@@ -129,12 +130,12 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
     if self.__in.vtable != nil && self.__in.vtable.__in.__GetUniformResources != nil {
         return self.__in.vtable.__in.__GetUniformResources(self)
     } else {
-        panicLog("__GetUniformResources is not implemented")
+        trace.panic_log("__GetUniformResources is not implemented")
     }
 }
 
 @private __GetUniformResources_AnimateImage :: #force_inline proc(self:^IObject) -> []VkUnionResource {
-    res := make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
+    res := mem.make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
     res[0] = &self.__in.__in.matUniform
     res[1] = &self.__in.camera.__in.matUniform
     res[2] = &self.__in.projection.__in.matUniform
@@ -146,7 +147,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
 }
 
 @private __GetUniformResources_TileImage :: #force_inline proc(self:^IObject) -> []VkUnionResource {
-    res := make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
+    res := mem.make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
     res[0] = &self.__in.__in.matUniform
     res[1] = &self.__in.camera.__in.matUniform
     res[2] = &self.__in.projection.__in.matUniform
@@ -158,7 +159,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
 }
 
 @private __GetUniformResources_Default :: #force_inline proc(self:^IObject) -> []VkUnionResource {
-    res := make_non_zeroed([]VkUnionResource, 4, context.temp_allocator)
+    res := mem.make_non_zeroed([]VkUnionResource, 4, context.temp_allocator)
     res[0] = &self.__in.__in.matUniform
     res[1] = &self.__in.camera.__in.matUniform
     res[2] = &self.__in.projection.__in.matUniform
@@ -168,46 +169,46 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
 }
 
 @private __IObject_UpdateUniform :: #force_inline proc(self:^IObject, resources:[]VkUnionResource) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     mem.copy_non_overlapping(&self.__in.set.__resources[0], &resources[0], len(resources) * size_of(VkUnionResource))
     VkUpdateDescriptorSets(mem.slice_ptr(&self.__in.set, 1))
 }
 
 IObject_UpdateTransform :: proc(self:^IObject, pos:linalg.Point3DF, rotation:f32 = 0.0, scale:linalg.PointF = {1.0,1.0}, pivot:linalg.PointF = {0.0,0.0}) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in.__in.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
     VkBufferResource_CopyUpdate(&self.__in.__in.matUniform, &self.__in.__in.mat)
 }
 IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in.__in.mat = _mat
     VkBufferResource_CopyUpdate(&self.__in.__in.matUniform, &self.__in.__in.mat)
 }
 IObject_UpdateColorTransform :: proc(self:^IObject, colorTransform:^ColorTransform) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in.colorTransform = colorTransform
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_UpdateCamera :: proc(self:^IObject, camera:^Camera) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in.camera = camera
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_UpdateProjection :: proc(self:^IObject, projection:^Projection) {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     self.__in.projection = projection
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_GetColorTransform :: #force_inline proc "contextless" (self:^IObject) -> ^ColorTransform {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     return self.__in.colorTransform
 }
 IObject_GetCamera :: #force_inline proc "contextless" (self:^IObject) -> ^Camera {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     return self.__in.camera
 }
 IObject_GetProjection :: #force_inline proc "contextless" (self:^IObject) -> ^Projection {
-    xmem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.__in.__in.checkInit)
     return self.__in.projection
 }
 
@@ -219,7 +220,7 @@ IObject_Draw :: proc (self:^IObject, cmd:vk.CommandBuffer) {
     if self.__in.vtable != nil && self.__in.vtable.Draw != nil {
         self.__in.vtable.Draw(self, cmd)
     } else {
-        panicLog("IObjectType_Draw: unknown object type")
+        trace.panic_log("IObjectType_Draw: unknown object type")
     }
 }
 
@@ -227,7 +228,7 @@ IObject_Deinit :: proc(self:^IObject) {
     if self.__in.vtable != nil && self.__in.vtable.Deinit != nil {
         self.__in.vtable.Deinit(self)
     } else {
-        panicLog("IObjectType_Deinit: unknown object type")
+        trace.panic_log("IObjectType_Deinit: unknown object type")
     }
 }
 
@@ -245,8 +246,8 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 //AUTO DELETE USE vkDefAllocator
 @private __VertexBuf_Init :: proc (self:^__VertexBuf($NodeType), array:[]NodeType, _flag:ResourceUsage, _useGPUMem := false) {
-    xmem.ICheckInit_Init(&self.checkInit)
-    if len(array) == 0 do panicLog("VertexBuf_Init: array is empty")
+    mem.ICheckInit_Init(&self.checkInit)
+    if len(array) == 0 do trace.panic_log("VertexBuf_Init: array is empty")
     VkBufferResource_CreateBuffer(&self.buf, {
         len = vk.DeviceSize(len(array) * size_of(NodeType)),
         type = .VERTEX,
@@ -257,7 +258,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 }
 
 @private __VertexBuf_Deinit :: proc (self:^__VertexBuf($NodeType)) {
-    xmem.ICheckInit_Deinit(&self.checkInit)
+    mem.ICheckInit_Deinit(&self.checkInit)
 
     VkBufferResource_Deinit(&self.buf)
 }
@@ -268,8 +269,8 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 //AUTO DELETE USE vkDefAllocator
 @private __StorageBuf_Init :: proc (self:^__StorageBuf($NodeType), array:[]NodeType, _flag:ResourceUsage, _useGPUMem := false) {
-    xmem.ICheckInit_Init(&self.checkInit)
-    if len(array) == 0 do panicLog("StorageBuf_Init: array is empty")
+    mem.ICheckInit_Init(&self.checkInit)
+    if len(array) == 0 do trace.panic_log("StorageBuf_Init: array is empty")
     VkBufferResource_CreateBuffer(&self.buf, {
         len = vk.DeviceSize(len(array) * size_of(NodeType)),
         type = .STORAGE,
@@ -280,7 +281,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 }
 
 @private __StorageBuf_Deinit :: proc (self:^__StorageBuf($NodeType)) {
-    xmem.ICheckInit_Deinit(&self.checkInit)
+    mem.ICheckInit_Deinit(&self.checkInit)
 
     VkBufferResource_Deinit(&self.buf)
 }
@@ -291,8 +292,8 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 //AUTO DELETE USE vkDefAllocator
 @private __IndexBuf_Init :: proc (self:^__IndexBuf, array:[]u32, _flag:ResourceUsage, _useGPUMem := false) {
-    xmem.ICheckInit_Init(&self.checkInit)
-    if len(array) == 0 do panicLog("IndexBuf_Init: array is empty")
+    mem.ICheckInit_Init(&self.checkInit)
+    if len(array) == 0 do trace.panic_log("IndexBuf_Init: array is empty")
     VkBufferResource_CreateBuffer(&self.buf, {
         len = vk.DeviceSize(len(array) * size_of(u32)),
         type = .INDEX,
@@ -303,7 +304,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 
 @private __IndexBuf_Deinit :: proc (self:^__IndexBuf) {
-    xmem.ICheckInit_Deinit(&self.checkInit)
+    mem.ICheckInit_Deinit(&self.checkInit)
 
     VkBufferResource_Deinit(&self.buf)
 }
