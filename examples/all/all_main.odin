@@ -280,3 +280,29 @@ _ :: utf8
 _ :: utf8string
 _ :: utf16
 _ :: sanitizer
+
+
+import geometry "core:math/geometry"
+import poly2tri "core:math/poly2tri"
+import collision "core:math/collision"
+
+_ :: geometry
+_ :: poly2tri
+_ :: collision
+
+//endine
+
+import engine "core:engine"
+import components "core:engine/components"
+import font "core:engine/font"
+import graphics "core:engine/graphics"
+import gui "core:engine/gui"
+import sound "core:engine/sound"
+
+_ :: engine
+_ :: components
+_ :: font
+_ :: graphics
+_ :: gui
+_ :: sound
+

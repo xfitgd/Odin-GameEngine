@@ -222,7 +222,7 @@ glfwSystemDestroy :: proc() {
 glfwLoop :: proc() {
     glfwKeyProc :: proc "c" (window: glfw.WindowHandle, key, scancode, action, mods: c.int) {
         //glfw.KEY_SPACE
-        if key > KEY_SIZE-1 || key < 0 || !xreflect.IsValidEnumValue(KeyCode, key) {
+        if key > KEY_SIZE-1 || key < 0 || !xreflect.is_valid_enum_value(KeyCode, key) {
             return
         }
         switch action {
