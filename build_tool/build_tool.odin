@@ -36,6 +36,7 @@ x86_64-linux-gnu
 riscv64-linux-gnu
 */
 
+
 main :: proc() {
 	//fmt.println(os.args)
 	json_data:json.Value
@@ -209,8 +210,8 @@ findGLSLFileAndRunCmd :: proc() -> bool {
 
 		for vExt in glslExts {
 			if strings.compare(ext, vExt) == 0 {
-				spvFile := strings.concatenate({"./xfit/shaders/", file.name, ".spv"})
-				glslFile := strings.concatenate({"./xfit/shaders/", file.name})
+				spvFile := strings.join({ODIN_ROOT, "/core/engine/shaders/", file.name, ".spv"}, "")
+				glslFile := strings.join({ODIN_ROOT, "/core/engine/shaders/", file.name}, "")
 				defer delete(spvFile)
 				defer delete(glslFile)
 
