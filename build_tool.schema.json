@@ -1,0 +1,42 @@
+{
+    "type": "object",
+	"properties": {
+		"setting": {
+			"type": "object",
+			"properties": {
+				"is-android": {
+					"type": "boolean"
+				},
+				"main-package": {
+					"type": "string"
+				},
+				"out-path": {
+					"type": "string"
+				},
+				"build-type": {
+					"type": "string"
+				}
+			},
+			"required": ["main-package", "out-path", "build-type"]
+		},
+		"android-paths": {
+			"type": "object",
+			"properties": {
+				"ndk": {
+					"type": "string"
+				},
+				"sdk": {
+					"type": "string"
+				},
+				"build-tools-version": {
+					"type": "string"
+				},
+				"platform-version": {
+					"type": "string"
+				}
+			},
+			"required": ["ndk", "sdk", "build-tools-version", "platform-version"]
+		}
+	},
+	"required": ["setting"]
+}

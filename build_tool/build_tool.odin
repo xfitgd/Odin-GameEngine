@@ -56,7 +56,10 @@ main :: proc() {
 	
 		setting := (json_data.(json.Object)["setting"]).(json.Object)
 	
-		is_android := setting["is-android"].(json.Boolean);
+		is_android :bool = false
+		if "is-android" in setting {
+			is_android = setting["is-android"].(json.Boolean)
+		}
 		out_path := strings.join({"-out:", setting["out-path"].(json.String)}, "")
 		defer delete(out_path)
 
