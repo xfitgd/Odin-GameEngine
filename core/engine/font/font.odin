@@ -2,10 +2,13 @@ package font
 
 
 import "core:math"
+import "core:engine"
 import "core:c"
 import "core:mem"
 import "core:slice"
+import "core:debug/trace"
 import "core:math/linalg"
+import "core:math/geometry"
 import "core:unicode"
 import "core:unicode/utf8"
 import "core:sync"
@@ -15,7 +18,7 @@ import "vendor:freetype"
 
 
 @(private="file") CharData :: struct {
-    rawShape : ^RawShape,
+    rawShape : ^geometry.RawShape,
     advanceX : f32,
 }
 @(private="file") CharNode :: struct #packed {
@@ -37,12 +40,12 @@ Font :: struct {}
 }
 
 FontRenderOpt :: struct {
-    scale:PointF,    //(0,0) -> (1,1)
-    offset:PointF,
-    pivot:PointF,
-    area:Maybe(PointF),
-    color:Point3DwF,
-    flag:ResourceUsage,
+    scale:linalg.PointF,    //(0,0) -> (1,1)
+    offset:linalg.PointF,
+    pivot:linalg.PointF,
+    area:Maybe(linalg.PointF),
+    color:linalg.Point3DwF,
+    flag:engine.ResourceUsage,
 }
 
 FontRenderOpt2 :: struct {
@@ -52,8 +55,8 @@ FontRenderOpt2 :: struct {
 
 FontRenderRange :: struct {
     font:^Font,
-    scale:PointF,    //(0,0) -> (1,1)
-    color:Point3DwF,
+    scale:linalg.PointF,    //(0,0) -> (1,1)
+    color:linalg.Point3DwF,
     len:uint,
 }
 
@@ -73,7 +76,7 @@ FontRenderRange :: struct {
 FreetypeErr :: freetype.Error
 
 Font_Init :: proc(_fontData:[]byte, #any_int _faceIdx:int = 0) -> (font : ^Font = nil, err : FreetypeErr = .Ok)  {
-    font_ := new_non_zeroed(__Font)
+    font_ := mem.new_non_zeroed(__Font)
     defer if err != .Ok do free(font_)
 
     font_.scale = SCALE_DEFAULT
@@ -104,7 +107,7 @@ Font_Deinit :: proc(self:^Font) -> (err : freetype.Error = .Ok) {
     if err != .Ok do trace.panic_log(err)
 
     for key,value in self_.charArray {
-        RawShape_Free(value.rawShape, vkDefAllocator)
+        geometry.RawShape_Free(value.rawShape, engine.defAllocator())
     }
     delete(self_.charArray)
     sync.mutex_unlock(&self_.mutex)
@@ -122,13 +125,13 @@ Font_SetScale :: proc(self:^Font, scale:f32) {
 
 @(private="file") _Font_RenderString2 :: proc(_str:string,
 _renderOpt:FontRenderOpt2,
-vertList:^[dynamic]ShapeVertex2D,
+vertList:^[dynamic]geometry.ShapeVertex2D,
 indList:^[dynamic]u32,
-allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
+allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError = .None) {
     i : int = 0
     opt := _renderOpt.opt
-    rectT : RectF
-    rect = Rect_Init(f32(0.0), 0.0, 0.0, 0.0)
+    rectT : linalg.RectF
+    rect = linalg.Rect_Init(f32(0.0), 0.0, 0.0, 0.0)
 
     for r in _renderOpt.ranges {
         opt.scale = _renderOpt.opt.scale * r.scale
@@ -136,11 +139,11 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
 
         if r.len == 0 || i + auto_cast r.len >= len(_str) {
             _, rectT = _Font_RenderString(auto_cast r.font, _str[i:], opt, vertList, indList, allocator) or_return
-            rect = Rect_Or(rect, rectT)
+            rect = linalg.Rect_Or(rect, rectT)
             break;
         } else {
             opt.offset, rectT = _Font_RenderString(auto_cast r.font, _str[i:i + auto_cast r.len], opt, vertList, indList, allocator) or_return
-            rect = Rect_Or(rect, rectT)
+            rect = linalg.Rect_Or(rect, rectT)
             i += auto_cast r.len
         }
     }
@@ -150,14 +153,14 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
 @(private="file") _Font_RenderString :: proc(self:^__Font,
     _str:string,
     _renderOpt:FontRenderOpt,
-    _vertArr:^[dynamic]ShapeVertex2D,
+    _vertArr:^[dynamic]geometry.ShapeVertex2D,
     _indArr:^[dynamic]u32,
-    allocator : runtime.Allocator) -> (pt:PointF, rect:RectF, err:ShapesError = .None) {
+    allocator : runtime.Allocator) -> (pt:linalg.PointF, rect:linalg.RectF, err:geometry.ShapesError = .None) {
 
-    maxP : PointF = {min(f32), min(f32)}
-    minP : PointF = {max(f32), max(f32)}
+    maxP : linalg.PointF = {min(f32), min(f32)}
+    minP : linalg.PointF = {max(f32), max(f32)}
 
-    offset : PointF = {}
+    offset : linalg.PointF = {}
 
     sync.mutex_lock(&self.mutex)
     for s in _str {
@@ -167,15 +170,15 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
             offset.x = 0
             continue
         }
-        minP = min_array(minP, offset)
+        minP = math.min_array(minP, offset)
 
         _Font_RenderChar(self, s, _vertArr, _indArr, &offset, _renderOpt.area, _renderOpt.scale, _renderOpt.color, allocator) or_return
         
-        maxP = max_array(maxP, PointF{offset.x, offset.y + f32(self.face.size.metrics.height) / (64.0 * self.scale) })
+        maxP = math.max_array(maxP,linalg.PointF{offset.x, offset.y + f32(self.face.size.metrics.height) / (64.0 * self.scale) })
     }
     sync.mutex_unlock(&self.mutex)
 
-    size : PointF = _renderOpt.area != nil ? _renderOpt.area.? : (maxP - minP) * PointF{1,1}
+    size : linalg.PointF = _renderOpt.area != nil ? _renderOpt.area.? : (maxP - minP) * linalg.PointF{1,1}
 
     maxP = {min(f32), min(f32)}
     minP = {max(f32), max(f32)}
@@ -184,10 +187,10 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
         v.pos -= _renderOpt.pivot * size * _renderOpt.scale
         v.pos += _renderOpt.offset
 
-        minP = min_array(minP, v.pos)
-        maxP = max_array(maxP, v.pos)
+        minP = math.min_array(minP, v.pos)
+        maxP = math.max_array(maxP, v.pos)
     }
-    rect = Rect_Init_LTRB(minP.x, maxP.x, minP.y, maxP.y)
+    rect = linalg.Rect_Init_LTRB(minP.x, maxP.x, minP.y, maxP.y)
 
     subX :f32 = rect.x + rect.size.x / 2.0
     subY :f32 = rect.y + rect.size.y / 2.0
@@ -195,7 +198,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
         v.pos.x -= subX
         v.pos.y -= subY
     }
-    rect = Rect_Move(rect, PointF{subX, subY})
+    rect = linalg.Rect_Move(rect, linalg.PointF{subX, subY})
 
     pt = offset * _renderOpt.scale + _renderOpt.offset
     return
@@ -203,19 +206,19 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
 
 @(private="file") _Font_RenderChar :: proc(self:^__Font,
     _char:rune,
-    _vertArr:^[dynamic]ShapeVertex2D,
+    _vertArr:^[dynamic]geometry.ShapeVertex2D,
     _indArr:^[dynamic]u32,
-    offset:^PointF,
-    area:Maybe(PointF),
-    scale:PointF,
-    color:Point3DwF,
-    allocator : runtime.Allocator) -> (shapeErr:ShapesError = .None) {
+    offset:^linalg.PointF,
+    area:Maybe(linalg.PointF),
+    scale:linalg.PointF,
+    color:linalg.Point3DwF,
+    allocator : runtime.Allocator) -> (shapeErr:geometry.ShapesError = .None) {
     ok := _char in self.charArray
     charD : ^CharData
 
     FTMoveTo :: proc "c" (to: ^freetype.Vector, user: rawptr) -> c.int {
         data : ^FontUserData = auto_cast user
-        data.pen = PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
+        data.pen = linalg.PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
 
         if data.idx > 0 {
             data.polygon.nPolys[data.nPoly] = data.nPolyLen
@@ -229,7 +232,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
     }
     FTLineTo :: proc "c" (to: ^freetype.Vector, user: rawptr) -> c.int {
         data : ^FontUserData = auto_cast user
-        end := PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
+        end := linalg.PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
     
         data.polygon.poly[data.idx] = data.pen
         data.polygon.types[data.typeIdx] = .Line
@@ -242,8 +245,8 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
     }
     FTConicTo :: proc "c" (control: ^freetype.Vector, to: ^freetype.Vector, user: rawptr) -> c.int {
         data : ^FontUserData = auto_cast user
-        ctl := PointF{f32(control.x) / (64 * data.scale), f32(control.y) / (64 * data.scale)}
-        end := PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
+        ctl := linalg.PointF{f32(control.x) / (64 * data.scale), f32(control.y) / (64 * data.scale)}
+        end := linalg.PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
     
         data.polygon.poly[data.idx] = data.pen
         data.polygon.poly[data.idx+1] = ctl
@@ -257,9 +260,9 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
     }
     FTCubicTo :: proc "c" (control0, control1, to: ^freetype.Vector, user: rawptr) -> c.int {
         data : ^FontUserData = auto_cast user
-        ctl0 := PointF{f32(control0.x) / (64 * data.scale), f32(control0.y) / (64 * data.scale)}
-        ctl1 := PointF{f32(control1.x) / (64 * data.scale), f32(control1.y) / (64 * data.scale)}
-        end := PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
+        ctl0 := linalg.PointF{f32(control0.x) / (64 * data.scale), f32(control0.y) / (64 * data.scale)}
+        ctl1 := linalg.PointF{f32(control1.x) / (64 * data.scale), f32(control1.y) / (64 * data.scale)}
+        end := linalg.PointF{f32(to.x) / (64 * data.scale), f32(to.y) / (64 * data.scale)}
     
         data.polygon.poly[data.idx] = data.pen
         data.polygon.poly[data.idx+1] = ctl0
@@ -273,8 +276,8 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
         return 0
     }
     FontUserData :: struct {
-        pen : PointF,
-        polygon : ^Shapes,
+        pen : linalg.PointF,
+        polygon : ^geometry.Shapes,
         idx : u32,
         nPoly : u32,
         nPolyLen : u32,
@@ -326,15 +329,15 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
                 freetype.outline_reverse(&self.face.glyph.outline)
             }
         
-            poly : Shapes = {
+            poly : geometry.Shapes = {
                 nPolys = mem.make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
                 nTypes = mem.make_non_zeroed([]u32, self.face.glyph.outline.n_contours),
-                types = mem.make_non_zeroed([]CurveType, self.face.glyph.outline.n_points*3),
-                poly = mem.make_non_zeroed([]PointF, self.face.glyph.outline.n_points*3),
-                colors = mem.make_non_zeroed([]Point3DwF, self.face.glyph.outline.n_contours),
+                types = mem.make_non_zeroed([]geometry.CurveType, self.face.glyph.outline.n_points*3),
+                poly = mem.make_non_zeroed([]linalg.PointF, self.face.glyph.outline.n_points*3),
+                colors = mem.make_non_zeroed([]linalg.Point3DwF, self.face.glyph.outline.n_contours),
             }
             for &c in poly.colors {
-                c = Point3DwF{0,0,0,1}//?no matter
+                c = linalg.Point3DwF{0,0,0,1}//?no matter
             }
             defer {
                 delete(poly.nPolys, )
@@ -371,18 +374,18 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
 
                 poly.nPolys[data.nPoly] = data.nPolyLen
                 poly.nTypes[data.nTypes] = data.nTypesLen
-                poly.poly = resize_non_zeroed_slice(poly.poly, data.idx, )
-                poly.types = resize_non_zeroed_slice(poly.types, data.typeIdx, )
+                poly.poly = mem.resize_non_zeroed_slice(poly.poly, data.idx, )
+                poly.types = mem.resize_non_zeroed_slice(poly.types, data.typeIdx, )
                
                 poly.strokeColors = nil
                 poly.thickness = nil
 
-                rawP : ^RawShape
-                rawP , shapeErr = Shapes_ComputePolygon(&poly, vkDefAllocator)//높은 부하 작업 High load operations
+                rawP : ^geometry.RawShape
+                rawP , shapeErr = geometry.Shapes_ComputePolygon(&poly, engine.defAllocator())//높은 부하 작업 High load operations
                 if shapeErr != .None do return
 
                 defer if shapeErr != .None {
-                    RawShape_Free(rawP, vkDefAllocator)
+                    geometry.RawShape_Free(rawP, engine.defAllocator())
                 }
 
                 charData = {
@@ -405,7 +408,7 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
         vlen := len(_vertArr^)
 
         non_zero_resize_dynamic_array(_vertArr, vlen + len(charD.rawShape.vertices))
-        runtime.mem_copy_non_overlapping(&_vertArr^[vlen], &charD.rawShape.vertices[0], len(charD.rawShape.vertices) * size_of(ShapeVertex2D))
+        runtime.mem_copy_non_overlapping(&_vertArr^[vlen], &charD.rawShape.vertices[0], len(charD.rawShape.vertices) * size_of(geometry.ShapeVertex2D))
 
         i := vlen
         for ;i < len(_vertArr^);i += 1 {
@@ -430,14 +433,14 @@ allocator : runtime.Allocator) -> (rect:RectF, err:ShapesError = .None) {
     return
 }
 
-Font_RenderString2 :: proc(_str:string, _renderOpt:FontRenderOpt2, allocator := context.allocator) -> (res:^RawShape, err:ShapesError = .None)  {
-    vertList := make_non_zeroed_dynamic_array([dynamic]ShapeVertex2D, allocator)
-    indList := make_non_zeroed_dynamic_array([dynamic]u32, allocator)
+Font_RenderString2 :: proc(_str:string, _renderOpt:FontRenderOpt2, allocator := context.allocator) -> (res:^geometry.RawShape, err:geometry.ShapesError = .None)  {
+    vertList := mem.make_non_zeroed_dynamic_array([dynamic]geometry.ShapeVertex2D, allocator)
+    indList := mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
 
     _Font_RenderString2(_str, _renderOpt, &vertList, &indList, allocator) or_return
     shrink(&vertList)
     shrink(&indList)
-    res = new (RawShape, allocator)
+    res = new (geometry.RawShape, allocator)
     res^ = {
         vertices = vertList[:],
         indices = indList[:],
@@ -445,15 +448,15 @@ Font_RenderString2 :: proc(_str:string, _renderOpt:FontRenderOpt2, allocator := 
     return
 }
 
-Font_RenderString :: proc(self:^Font, _str:string, _renderOpt:FontRenderOpt, allocator := context.allocator) -> (res:^RawShape, err:ShapesError = .None) {
-    vertList := make_non_zeroed_dynamic_array([dynamic]ShapeVertex2D, allocator)
-    indList := make_non_zeroed_dynamic_array([dynamic]u32, allocator)
+Font_RenderString :: proc(self:^Font, _str:string, _renderOpt:FontRenderOpt, allocator := context.allocator) -> (res:^geometry.RawShape, err:geometry.ShapesError = .None) {
+    vertList := mem.make_non_zeroed_dynamic_array([dynamic]geometry.ShapeVertex2D, allocator)
+    indList := mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
 
     _, rect := _Font_RenderString(auto_cast self, _str, _renderOpt, &vertList, &indList, allocator) or_return
 
     shrink(&vertList)
     shrink(&indList)
-    res = new (RawShape, allocator)
+    res = new (geometry.RawShape, allocator)
     res^ = {
         vertices = vertList[:],
         indices = indList[:],

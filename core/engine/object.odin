@@ -244,7 +244,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
     gClearColor = color
 }
 
-//AUTO DELETE USE vkDefAllocator
+//AUTO DELETE USE engineDefAllocator
 @private __VertexBuf_Init :: proc (self:^__VertexBuf($NodeType), array:[]NodeType, _flag:ResourceUsage, _useGPUMem := false) {
     mem.ICheckInit_Init(&self.checkInit)
     if len(array) == 0 do trace.panic_log("VertexBuf_Init: array is empty")
@@ -254,7 +254,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
         resourceUsage = _flag,
         single = false,
         useGCPUMem = _useGPUMem,
-    }, mem.slice_to_bytes(array), false, vkDefAllocator)
+    }, mem.slice_to_bytes(array), false, engineDefAllocator)
 }
 
 @private __VertexBuf_Deinit :: proc (self:^__VertexBuf($NodeType)) {
@@ -264,10 +264,10 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 }
 
 @private __VertexBuf_Update :: proc (self:^__VertexBuf($NodeType), array:[]NodeType) {
-    VkBufferResource_MapUpdateSlice(&self.buf, array, vkDefAllocator)
+    VkBufferResource_MapUpdateSlice(&self.buf, array, engineDefAllocator)
 }
 
-//AUTO DELETE USE vkDefAllocator
+//AUTO DELETE USE engineDefAllocator
 @private __StorageBuf_Init :: proc (self:^__StorageBuf($NodeType), array:[]NodeType, _flag:ResourceUsage, _useGPUMem := false) {
     mem.ICheckInit_Init(&self.checkInit)
     if len(array) == 0 do trace.panic_log("StorageBuf_Init: array is empty")
@@ -277,7 +277,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
         resourceUsage = _flag,
         single = false,
         useGCPUMem = _useGPUMem,
-    }, mem.slice_to_bytes(array), false, vkDefAllocator)
+    }, mem.slice_to_bytes(array), false, engineDefAllocator)
 }
 
 @private __StorageBuf_Deinit :: proc (self:^__StorageBuf($NodeType)) {
@@ -287,10 +287,10 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 }
 
 @private __StorageBuf_Update :: proc (self:^__StorageBuf($NodeType), array:[]NodeType) {
-    VkBufferResource_MapUpdateSlice(&self.buf, array, vkDefAllocator)
+    VkBufferResource_MapUpdateSlice(&self.buf, array, engineDefAllocator)
 }
 
-//AUTO DELETE USE vkDefAllocator
+//AUTO DELETE USE engineDefAllocator
 @private __IndexBuf_Init :: proc (self:^__IndexBuf, array:[]u32, _flag:ResourceUsage, _useGPUMem := false) {
     mem.ICheckInit_Init(&self.checkInit)
     if len(array) == 0 do trace.panic_log("IndexBuf_Init: array is empty")
@@ -299,7 +299,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
         type = .INDEX,
         resourceUsage = _flag,
         useGCPUMem = _useGPUMem,
-    }, mem.slice_to_bytes(array), false, vkDefAllocator)
+    }, mem.slice_to_bytes(array), false, engineDefAllocator)
 }
 
 
@@ -310,7 +310,7 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 }
 
 @private __IndexBuf_Update :: #force_inline proc (self:^__IndexBuf, array:[]u32) {
-    VkBufferResource_MapUpdateSlice(&self.buf, array, vkDefAllocator)
+    VkBufferResource_MapUpdateSlice(&self.buf, array, engineDefAllocator)
 }
 
 @private __VertexBuf :: struct($NodeType:typeid) {
@@ -326,14 +326,14 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 //! Non Zeroed Alloc
 AllocObject :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
-    obj, err := mem.alloc_bytes_non_zeroed(size_of(T),align_of(T), vkDefAllocator)
+    obj, err := mem.alloc_bytes_non_zeroed(size_of(T),align_of(T), engineDefAllocator)
     if err != .None do return nil, err
 	return transmute(^T)raw_data(obj), .None
 }
 
 //! Non Zeroed Alloc
 AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
-    arr, err := mem.alloc_bytes_non_zeroed(count * size_of(T), align_of(T), vkDefAllocator)
+    arr, err := mem.alloc_bytes_non_zeroed(count * size_of(T), align_of(T), engineDefAllocator)
     if err != .None do return nil, err
     s := runtime.Raw_Slice{raw_data(arr), count}
     return transmute([]T)s, .None
@@ -341,7 +341,7 @@ AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, r
 
 //! Non Zeroed Alloc
 AllocObjectDynamic :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
-    res, err := make_non_zeroed_dynamic_array([dynamic]T, vkDefAllocator)
+    res, err := make_non_zeroed_dynamic_array([dynamic]T, engineDefAllocator)
     if err != .None do return nil, err
     return res, .None
 }

@@ -115,10 +115,14 @@ is_log :: #config(__log__, true)
 @(private="file") inited := false
 
 
-xfitInit :: proc() {
+@(private) engineDefAllocator : runtime.Allocator
+
+@(private, init) engineInit :: proc() {
 	systemInit()
 	systemStart()
 	inited = true
+
+	engineDefAllocator =  runtime.default_allocator()
 }
 
 //must call start
@@ -128,7 +132,11 @@ when is_android {
 	}
 }
 
-xfitMain :: proc(
+defAllocator :: proc "contextless" () -> runtime.Allocator {
+	return engineDefAllocator
+}
+
+engineMain :: proc(
 	_windowTitle:cstring = "xfit",
 	_windowX:Maybe(i32) = nil,
 	_windowY:Maybe(i32) = nil,

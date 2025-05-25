@@ -471,7 +471,7 @@ TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #
     self.__in.set.size = __singleSamplerPoolSizes[:]
     self.__in.set.layout = vkTexDescriptorSetLayout2
     self.__in.set.__set = 0
-    self.__in.allocPixels = mem.make_non_zeroed_slice([]byte, count * tile_width * tile_height, vkDefAllocator)
+    self.__in.allocPixels = mem.make_non_zeroed_slice([]byte, count * tile_width * tile_height, engineDefAllocator)
 
     //convert tilemap pixel data format to tile image data format arranged sequentially
     cnt:int
@@ -497,7 +497,7 @@ TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #
         len = auto_cast count,
         textureUsage = {.IMAGE_RESOURCE},
         type = .TEX2D,
-    }, self.__in.sampler, self.__in.allocPixels, false, vkDefAllocator)
+    }, self.__in.sampler, self.__in.allocPixels, false, engineDefAllocator)
 }
 TileTextureArray_InitFile :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, files:[]string, sampler:vk.Sampler = 0) {
    //TODO

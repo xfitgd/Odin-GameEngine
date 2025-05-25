@@ -194,19 +194,16 @@ vkInitBlockLen :: proc() {
 	}
 }
 
-vkDefAllocator : runtime.Allocator
 
 vkAllocatorInit :: proc() {
-	vkDefAllocator = runtime.default_allocator()
+	gVkMemBufs = mem.make_non_zeroed([dynamic]^VkMemBuffer, engineDefAllocator)
 
-	gVkMemBufs = mem.make_non_zeroed([dynamic]^VkMemBuffer, vkDefAllocator)
-
-	gVkMemIdxCnts = mem.make_non_zeroed([]uint, vkPhysicalMemProp.memoryTypeCount, vkDefAllocator)
+	gVkMemIdxCnts = mem.make_non_zeroed([]uint, vkPhysicalMemProp.memoryTypeCount, engineDefAllocator)
 	mem.zero_slice(gVkMemIdxCnts)
 
-	mem.dynamic_arena_init(&__arena, vkDefAllocator, vkDefAllocator, mem.Megabyte * 4, 0)
-	mem.dynamic_arena_init(&__tempArena, vkDefAllocator, vkDefAllocator, mem.Megabyte * 1, 0)
-	mem.dynamic_arena_init(&__bufTempArena, vkDefAllocator, vkDefAllocator, mem.Megabyte * 1, 0)
+	mem.dynamic_arena_init(&__arena, engineDefAllocator, engineDefAllocator, mem.Megabyte * 4, 0)
+	mem.dynamic_arena_init(&__tempArena, engineDefAllocator, engineDefAllocator, mem.Megabyte * 1, 0)
+	mem.dynamic_arena_init(&__bufTempArena, engineDefAllocator, engineDefAllocator, mem.Megabyte * 1, 0)
 	vkArenaAllocator = mem.dynamic_arena_allocator(&__arena)
 	vkTempArenaAllocator = mem.dynamic_arena_allocator(&__tempArena)
 	vkBufTempArenaAllocator = mem.dynamic_arena_allocator(&__bufTempArena)
@@ -239,7 +236,7 @@ vkAllocatorInit :: proc() {
 	opDestroyQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
 	gVkUpdateDesciptorSetList = mem.make_non_zeroed([dynamic]vk.WriteDescriptorSet, vkArenaAllocator)
 
-	gAllocObjects = mem.make_non_zeroed([dynamic]ALLOC_OBJ, vkDefAllocator)
+	gAllocObjects = mem.make_non_zeroed([dynamic]ALLOC_OBJ, engineDefAllocator)
 }
 
 vkAllocatorDestroy :: proc() {
@@ -265,7 +262,7 @@ vkAllocatorDestroy :: proc() {
 	mem.dynamic_arena_destroy(&__allocArena)
 
 	delete(gAllocObjects)
-	delete(gVkMemIdxCnts, vkDefAllocator)
+	delete(gVkMemIdxCnts, engineDefAllocator)
 }
 
 @(private = "file") gVkMemBufs: [dynamic]^VkMemBuffer
@@ -664,12 +661,12 @@ VkBufferResource_CreateBuffer :: proc(
 	if isCopy {
 		copyData:[]byte
 		if allocator == nil {
-			copyData = mem.make_non_zeroed([]byte, len(data.?), vkDefAllocator)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), engineDefAllocator)
 		} else {
 			copyData = mem.make_non_zeroed([]byte, len(data.?), allocator.?)
 		}
 		mem.copy(raw_data(copyData), raw_data(data.?), len(data.?))
-		AppendOp(OpCreateBuffer{src = self, data = copyData, allocator = allocator == nil ? vkDefAllocator : allocator.?})
+		AppendOp(OpCreateBuffer{src = self, data = copyData, allocator = allocator == nil ? engineDefAllocator : allocator.?})
 	} else {
 		AppendOp(OpCreateBuffer{src = self, data = data, allocator = allocator})
 	}
@@ -687,12 +684,12 @@ VkBufferResource_CreateTexture :: proc(
 	if isCopy {
 		copyData:[]byte
 		if allocator == nil {
-			copyData = mem.make_non_zeroed([]byte, len(data.?), vkDefAllocator)
+			copyData = mem.make_non_zeroed([]byte, len(data.?), engineDefAllocator)
 		} else {
 			copyData = mem.make_non_zeroed([]byte, len(data.?), allocator.?)
 		}
 		mem.copy(raw_data(copyData), raw_data(data.?), len(data.?))
-		AppendOp(OpCreateTexture{src = self, data = copyData, allocator = allocator == nil ? vkDefAllocator : allocator.?})
+		AppendOp(OpCreateTexture{src = self, data = copyData, allocator = allocator == nil ? engineDefAllocator : allocator.?})
 	} else {
 		AppendOp(OpCreateTexture{src = self, data = data, allocator = allocator})
 	}
@@ -752,13 +749,13 @@ VkBufferResource_CopyUpdateSlice :: #force_inline proc(
 	bytes := mem.slice_to_bytes(data)
 	copyData:[]byte
 	if allocator == nil {
-		copyData = mem.make_non_zeroed([]byte, len(bytes), vkDefAllocator)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), engineDefAllocator)
 	} else {
 		copyData = mem.make_non_zeroed([]byte, len(bytes), allocator.?)
 	}
 	intrinsics.mem_copy_non_overlapping(raw_data(copyData), raw_data(bytes), len(bytes))
 
-	VkBufferResource_MapCopy(self, copyData, allocator == nil ? vkDefAllocator : allocator.?)
+	VkBufferResource_MapCopy(self, copyData, allocator == nil ? engineDefAllocator : allocator.?)
 }
 VkBufferResource_CopyUpdate :: #force_inline proc(
 	self: ^VkBaseResource,
@@ -768,12 +765,12 @@ VkBufferResource_CopyUpdate :: #force_inline proc(
 	copyData:[]byte
 	bytes := mem.ptr_to_bytes(data)
 	if allocator == nil {
-		copyData = mem.make_non_zeroed([]byte, len(bytes), vkDefAllocator)
+		copyData = mem.make_non_zeroed([]byte, len(bytes), engineDefAllocator)
 	} else {
 		copyData = mem.make_non_zeroed([]byte, len(bytes), allocator.?)
 	}
 	intrinsics.mem_copy_non_overlapping(raw_data(copyData), raw_data(bytes), len(bytes))
-	VkBufferResource_MapCopy(self, copyData, allocator == nil ? vkDefAllocator : allocator.?)
+	VkBufferResource_MapCopy(self, copyData, allocator == nil ? engineDefAllocator : allocator.?)
 }
 
 VkBufferResource_Deinit :: proc(self: ^$T) where T == VkBufferResource || T == VkTextureResource {
@@ -1307,7 +1304,7 @@ vkOpExecuteDestroy :: proc() {
 		for i in 0 ..< o.len {
 			o.deinit(  auto_cast &(([^]byte)(o.obj))[i * o.typeSize] )
 		}
-		mem.free_with_size(o.obj, int(o.len * o.typeSize), vkDefAllocator)
+		mem.free_with_size(o.obj, int(o.len * o.typeSize), engineDefAllocator)
 	}
 	clear(&gAllocObjects)
 	sync.mutex_unlock(&gAllocObjectMtx)

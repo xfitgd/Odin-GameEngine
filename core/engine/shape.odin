@@ -108,7 +108,7 @@ _Super_Shape_Draw :: proc (self:^Shape, cmd:vk.CommandBuffer) {
 }
 
 ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUsage = .GPU, colorFlag:ResourceUsage = .CPU) {
-    rawC := geometry.RawShape_Clone(raw, vkDefAllocator)
+    rawC := geometry.RawShape_Clone(raw, engineDefAllocator)
     __VertexBuf_Init(&self.__in.vertexBuf, rawC.vertices, flag)
     __IndexBuf_Init(&self.__in.indexBuf, rawC.indices, flag)
     self.rect = rawC.rect
@@ -116,7 +116,7 @@ ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUs
 
 @require_results ShapeSrc_Init :: proc(self:^ShapeSrc, shapes:^geometry.Shapes, flag:ResourceUsage = .GPU, colorFlag:ResourceUsage = .CPU) -> (err:geometry.ShapesError = .None) {
     raw : ^geometry.RawShape
-    raw, err = geometry.Shapes_ComputePolygon(shapes, vkDefAllocator)
+    raw, err = geometry.Shapes_ComputePolygon(shapes, engineDefAllocator)
     if err != .None do return
 
     __VertexBuf_Init(&self.__in.vertexBuf, raw.vertices, flag)
@@ -127,14 +127,14 @@ ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUs
 }
 
 ShapeSrc_UpdateRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape) {
-    rawC := geometry.RawShape_Clone(raw, vkDefAllocator)
+    rawC := geometry.RawShape_Clone(raw, engineDefAllocator)
     __VertexBuf_Update(&self.__in.vertexBuf, rawC.vertices)
     __IndexBuf_Update(&self.__in.indexBuf, rawC.indices)
 }
 
 @require_results ShapeSrc_Update :: proc(self:^ShapeSrc, shapes:^geometry.Shapes) -> (err:geometry.ShapesError = .None) {
     raw : ^geometry.RawShape
-    raw, err = geometry.Shapes_ComputePolygon(shapes, vkDefAllocator)
+    raw, err = geometry.Shapes_ComputePolygon(shapes, engineDefAllocator)
     if err != .None do return
 
     __VertexBuf_Update(&self.__in.vertexBuf, raw.vertices)
