@@ -1,5 +1,5 @@
 {
-    "$schema": "./build_tool.schema.json",
+    "$schema": "https://raw.githubusercontent.com/xfitgd/Odin-GameEngine/master/build_tool.schema.json",
     "setting" : {
         "is-android" : false,
         "main-package" : "vulkanexample",
