@@ -1,8 +1,6 @@
 package mem
 
 import "base:intrinsics"
-import "core:mem"
-import "core:slice"
 import "base:runtime"
 
 make_non_zeroed :: proc {

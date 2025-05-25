@@ -1,4 +1,4 @@
-all: default
+all: default tool
 
 demo:
 	./odin run examples/demo/demo.odin -file
@@ -23,3 +23,6 @@ release_native:
 
 nightly:
 	./build_odin.sh nightly
+
+tool:
+	./build_build_tool.sh
