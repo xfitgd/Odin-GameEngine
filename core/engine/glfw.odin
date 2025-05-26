@@ -27,10 +27,10 @@ when !is_mobile {
 
 glfwStart :: proc() {
     //?default screen idx 0
-    if __windowWidth == nil do __windowWidth = u32(monitors[0].rect.width / 2)
-	if __windowHeight == nil do __windowHeight = u32(monitors[0].rect.height / 2)
-	if __windowX == nil do __windowX = i32(monitors[0].rect.x + monitors[0].rect.width / 4)
-	if __windowY == nil do __windowY = i32(monitors[0].rect.y + monitors[0].rect.height / 4)
+    if __windowWidth == nil do __windowWidth = u32(monitors[0].rect.size.x / 2)
+	if __windowHeight == nil do __windowHeight = u32(monitors[0].rect.size.y / 2)
+	if __windowX == nil do __windowX = i32(monitors[0].rect.pos.x + monitors[0].rect.size.x / 4)
+	if __windowY == nil do __windowY = i32(monitors[0].rect.pos.y + monitors[0].rect.size.y / 4)
 
     SavePrevWindow()
 
@@ -39,17 +39,17 @@ glfwStart :: proc() {
         glfw.WindowHint (glfw.DECORATED, glfw.FALSE)
         glfw.WindowHint(glfw.FLOATING, glfw.TRUE)
 
-        wnd = glfw.CreateWindow(monitors[__screenIdx].rect.width,
-            monitors[__screenIdx].rect.height,
+        wnd = glfw.CreateWindow(monitors[__screenIdx].rect.size.x,
+            monitors[__screenIdx].rect.size.y,
             __windowTitle,
             nil,
             nil)
 
-        glfw.SetWindowPos(wnd, monitors[__screenIdx].rect.x, monitors[__screenIdx].rect.y)
-        glfw.SetWindowSize(wnd, monitors[__screenIdx].rect.width, monitors[__screenIdx].rect.height)
+        glfw.SetWindowPos(wnd, monitors[__screenIdx].rect.pos.x, monitors[__screenIdx].rect.pos.y)
+        glfw.SetWindowSize(wnd, monitors[__screenIdx].rect.size.x, monitors[__screenIdx].rect.size.y)
     } else if __screenMode == .Fullscreen {
-        wnd = glfw.CreateWindow(monitors[__screenIdx].rect.width,
-            monitors[__screenIdx].rect.height,
+        wnd = glfw.CreateWindow(monitors[__screenIdx].rect.size.x,
+            monitors[__screenIdx].rect.size.y,
             __windowTitle,
             glfwMonitors[__screenIdx],
             nil)
@@ -69,10 +69,10 @@ glfwStart :: proc() {
 glfwSetFullScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
     for &m, i in monitors {
         if raw_data(m.name) == raw_data(monitor.name) {
-            glfw.SetWindowMonitor(wnd, glfwMonitors[i], monitor.rect.x,
-                 monitor.rect.y,
-                monitor.rect.width,
-                monitor.rect.height,
+            glfw.SetWindowMonitor(wnd, glfwMonitors[i], monitor.rect.pos.x,
+                 monitor.rect.pos.y,
+                monitor.rect.size.x,
+                monitor.rect.size.y,
                 glfw.DONT_CARE)
             return
         }
@@ -80,10 +80,10 @@ glfwSetFullScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
 }
 
 glfwSetBorderlessScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
-    glfw.SetWindowMonitor(wnd, nil, monitor.rect.x,
-        monitor.rect.y,
-       monitor.rect.width,
-       monitor.rect.height,
+    glfw.SetWindowMonitor(wnd, nil, monitor.rect.pos.x,
+        monitor.rect.pos.y,
+       monitor.rect.size.x,
+       monitor.rect.size.y,
        glfw.DONT_CARE)
 }
 
@@ -114,7 +114,7 @@ glfwVulkanStart :: proc "contextless" () {
 @(private="file") glfwAppendMonitor :: proc(m:glfw.MonitorHandle) {
     info:MonitorInfo
     info.name = glfw.GetMonitorName(m)
-    info.rect.x, info.rect.y, info.rect.width, info.rect.height = glfw.GetMonitorWorkarea(m)
+    info.rect.pos.x, info.rect.pos.y, info.rect.size.x, info.rect.size.y = glfw.GetMonitorWorkarea(m)
     info.isPrimary = m == glfw.GetPrimaryMonitor()
 
     vidMode :^glfw.VidMode = glfw.GetVideoMode(m)
@@ -122,13 +122,13 @@ glfwVulkanStart :: proc "contextless" () {
 
     when is_log {
         printf(
-            "XFIT SYSLOG : ADD %s monitor name: %s, x:%d, y:%d, width:%d, height:%d, refleshrate%d\n",
+            "XFIT SYSLOG : ADD %s monitor name: %s, x:%d, y:%d, size.x:%d, size.y:%d, refleshrate%d\n",
             "primary" if info.isPrimary else "",
             info.name,
-            info.rect.x,
-            info.rect.y,
-            info.rect.width,
-            info.rect.height,
+            info.rect.pos.x,
+            info.rect.pos.y,
+            info.rect.size.x,
+            info.rect.size.y,
             info.refreshRate,
         )
     }
@@ -175,13 +175,13 @@ glfwSystemStart :: proc() {
                 if m == monitor {
                     when is_log {
                         printf(
-                            "XFIT SYSLOG : DEL %s monitor name: %s, x:%d, y:%d, width:%d, height:%d, refleshrate%d\n",
+                            "XFIT SYSLOG : DEL %s monitor name: %s, x:%d, y:%d, size.x:%d, size.y:%d, refleshrate%d\n",
                             "primary" if monitors[i].isPrimary else "",
                             monitors[i].name,
-                            monitors[i].rect.x,
-                            monitors[i].rect.y,
-                            monitors[i].rect.width,
-                            monitors[i].rect.height,
+                            monitors[i].rect.pos.x,
+                            monitors[i].rect.pos.y,
+                            monitors[i].rect.size.x,
+                            monitors[i].rect.size.y,
                             monitors[i].refreshRate,
                         )
                     }

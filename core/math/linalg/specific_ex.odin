@@ -17,17 +17,9 @@ PointF64 :: [2]f64
 Matrix :: Matrix4x4f32
 
 
-Rect_ :: struct($T: typeid) #raw_union where intrinsics.type_is_numeric(T) {
-	using _: struct {
-		x:      T,
-		y:      T,
-		width:  T,
-		height: T,
-	},
-	using _: struct {
-		pos:  [2]T,
-		size: [2]T,
-	},
+Rect_ :: struct($T: typeid) where intrinsics.type_is_numeric(T) {
+	pos:  [2]T,
+	size: [2]T,
 }
 
 

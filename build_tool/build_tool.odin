@@ -93,7 +93,7 @@ main :: proc() {
 			os2.make_directory("android/lib/lib")
 
 			os2.make_directory("android/lib/lib/arm64-v8a")
-			err := os2.copy_file("android/lib/lib/arm64-v8a/libVkLayer_khronos_validation.so", "xfit/lib/android/libVkLayer_khronos_validation.so")
+			err := os2.copy_file("android/lib/lib/arm64-v8a/libVkLayer_khronos_validation.so", filepath.join({ODIN_ROOT, "/vendor/vulkan/lib/android/libVkLayer_khronos_validation_arm64.so"}, context.temp_allocator))
 			if err != nil {
 				fmt.panicf("libVkLayer_khronos_validation copy_file: %s", err)
 			}
@@ -187,7 +187,7 @@ main :: proc() {
 }
 
 findGLSLFileAndRunCmd :: proc() -> bool {
-	dir, err := os2.open("./xfit/shaders")
+	dir, err := os2.open(filepath.join({ODIN_ROOT, "/core/engine/shaders"}, context.temp_allocator))
 	if err != nil {
 		fmt.panicf("findGLSLFiles open ERR : %s", err)
 	}

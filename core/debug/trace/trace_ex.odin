@@ -13,7 +13,7 @@ import "vendor:android"
 
 LOG_FILE_NAME: string = "odin_log.log"
 
-@(init) init_trace :: proc() {
+@(init, private) init_trace :: proc() {
 	when !is_android {
 		sync.mutex_lock(&gTraceMtx)
 		defer sync.mutex_unlock(&gTraceMtx)
@@ -21,7 +21,7 @@ LOG_FILE_NAME: string = "odin_log.log"
 	}
 }
 
-@(fini) deinit_trace :: proc() {
+@(fini, private) deinit_trace :: proc() {
 	when !is_android {
 		sync.mutex_lock(&gTraceMtx)
 		defer sync.mutex_unlock(&gTraceMtx)

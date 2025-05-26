@@ -1,6 +1,8 @@
 package android
 
 import "core:c"
+import "base:runtime"
+import "base:intrinsics"
 import "core:sys/posix"
 
 foreign import android "system:android"
@@ -203,4 +205,20 @@ android_app :: struct {
 
 foreign android {
 	app_dummy :: proc() ---
+}
+
+
+@private g_android_app:^android_app
+
+when ODIN_PLATFORM_SUBTARGET == .Android {
+    @export android_main :: proc "c" (state : ^android_app) {
+        context = runtime.default_context()
+        g_android_app = state
+        //args__ = argv[:argc]
+        intrinsics.__entry_point()
+    }
+
+    get_android_app :: proc "contextless" () -> ^android_app {
+        return g_android_app
+    }
 }

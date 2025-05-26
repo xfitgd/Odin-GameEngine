@@ -5,6 +5,8 @@ import "core:c"
 
 when ODIN_OS == .Darwin {
 	foreign import lib "system:System.framework"
+} else when ODIN_PLATFORM_SUBTARGET == .Android {//xfitgd
+	foreign import lib "system:c"
 } else when ODIN_OS == .FreeBSD || ODIN_OS == .NetBSD || ODIN_OS == .Linux {
 	foreign import lib "system:pthread"
 } else {
@@ -308,6 +310,7 @@ foreign lib {
 
 	[[ More; https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_setcancelstate.html ]]
 	*/
+	@(deprecated="xfitgd: Android Not Support. So disable this for me.")
 	pthread_setcancelstate :: proc(state: Cancel_State, oldstate: ^Cancel_State) -> Errno ---
 
 	/*
@@ -315,6 +318,7 @@ foreign lib {
 
 	[[ More; https://pubs.opengroup.org/onlinepubs/9699919799/functions/pthread_setcancelstate.html ]]
 	*/
+	@(deprecated="xfitgd: Android Not Support. So disable this for me.")
 	pthread_setcanceltype :: proc(type: Cancel_Type, oldtype: ^Cancel_Type) -> Errno ---
 
 

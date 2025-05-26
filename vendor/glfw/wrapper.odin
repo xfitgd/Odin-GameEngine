@@ -3,6 +3,11 @@ package glfw
 import "core:c"
 import glfw "bindings"
 
+is_android :: ODIN_PLATFORM_SUBTARGET == .Android
+is_mobile :: is_android
+
+when !is_mobile {
+
 Init      :: glfw.Init
 Terminate :: glfw.Terminate
 
@@ -252,4 +257,6 @@ PlatformSupported :: glfw.PlatformSupported
 // Used by vendor:OpenGL
 gl_set_proc_address :: proc(p: rawptr, name: cstring) {
 	(^rawptr)(p)^ = GetProcAddress(name)
+}
+
 }

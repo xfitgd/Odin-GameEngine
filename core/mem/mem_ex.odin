@@ -143,10 +143,10 @@ when ODIN_DEBUG {
 		t.init = true
 	}
 	ICheckInit_Check :: proc "contextless" (t: ^ICheckInit) {
-		if !t.init do panic("ICheckInit_Check: uninitialized")
+		if !t.init do panic_contextless("ICheckInit_Check: uninitialized")
 	}
 	ICheckInit_Deinit :: proc "contextless" (t: ^ICheckInit) {
-		if !t.init do panic("ICheckInit_Check: uninitialized")
+		if !t.init do panic_contextless("ICheckInit_Check: uninitialized")
 		t.init = false
 	}
 } else {

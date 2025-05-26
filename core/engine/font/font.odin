@@ -31,12 +31,14 @@ Font :: struct {}
 
 @(private="file") SCALE_DEFAULT : f32 : 256
 
-@(private="file") __Font :: struct {
+@(private) FontT :: struct {
     face:freetype.Face,
     charArray : map[rune]CharData,
-    scale:f32,//default 256
+   
 
     mutex:sync.Mutex,
+
+    scale:f32,//default 256
 }
 
 FontRenderOpt :: struct {
@@ -76,7 +78,7 @@ FontRenderRange :: struct {
 FreetypeErr :: freetype.Error
 
 Font_Init :: proc(_fontData:[]byte, #any_int _faceIdx:int = 0) -> (font : ^Font = nil, err : FreetypeErr = .Ok)  {
-    font_ := mem.new_non_zeroed(__Font)
+    font_ := mem.new_non_zeroed(FontT)
     defer if err != .Ok do free(font_)
 
     font_.scale = SCALE_DEFAULT
@@ -100,7 +102,7 @@ Font_Init :: proc(_fontData:[]byte, #any_int _faceIdx:int = 0) -> (font : ^Font 
 }
 
 Font_Deinit :: proc(self:^Font) -> (err : freetype.Error = .Ok) {
-    self_:^__Font = auto_cast self
+    self_:^FontT = auto_cast self
     sync.mutex_lock(&self_.mutex)
 
     err = freetype.done_face(self_.face)
@@ -117,7 +119,7 @@ Font_Deinit :: proc(self:^Font) -> (err : freetype.Error = .Ok) {
 }
 
 Font_SetScale :: proc(self:^Font, scale:f32) {
-    self_:^__Font = auto_cast self
+    self_:^FontT = auto_cast self
     sync.mutex_lock(&self_.mutex)
     self_.scale = SCALE_DEFAULT / scale
     sync.mutex_unlock(&self_.mutex)
@@ -150,7 +152,7 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
     return
 }
 
-@(private="file") _Font_RenderString :: proc(self:^__Font,
+@(private="file") _Font_RenderString :: proc(self:^FontT,
     _str:string,
     _renderOpt:FontRenderOpt,
     _vertArr:^[dynamic]geometry.ShapeVertex2D,
@@ -192,8 +194,8 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
     }
     rect = linalg.Rect_Init_LTRB(minP.x, maxP.x, minP.y, maxP.y)
 
-    subX :f32 = rect.x + rect.size.x / 2.0
-    subY :f32 = rect.y + rect.size.y / 2.0
+    subX :f32 = rect.pos.x + rect.size.x / 2.0
+    subY :f32 = rect.pos.y + rect.size.y / 2.0
     for &v in _vertArr^ {
         v.pos.x -= subX
         v.pos.y -= subY
@@ -204,7 +206,7 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
     return
 }
 
-@(private="file") _Font_RenderChar :: proc(self:^__Font,
+@(private="file") _Font_RenderChar :: proc(self:^FontT,
     _char:rune,
     _vertArr:^[dynamic]geometry.ShapeVertex2D,
     _indArr:^[dynamic]u32,
@@ -434,8 +436,8 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
 }
 
 Font_RenderString2 :: proc(_str:string, _renderOpt:FontRenderOpt2, allocator := context.allocator) -> (res:^geometry.RawShape, err:geometry.ShapesError = .None)  {
-    vertList := mem.make_non_zeroed_dynamic_array([dynamic]geometry.ShapeVertex2D, allocator)
-    indList := mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
+    vertList := make([dynamic]geometry.ShapeVertex2D, allocator)
+    indList := make([dynamic]u32, allocator)
 
     _Font_RenderString2(_str, _renderOpt, &vertList, &indList, allocator) or_return
     shrink(&vertList)
@@ -449,8 +451,8 @@ Font_RenderString2 :: proc(_str:string, _renderOpt:FontRenderOpt2, allocator := 
 }
 
 Font_RenderString :: proc(self:^Font, _str:string, _renderOpt:FontRenderOpt, allocator := context.allocator) -> (res:^geometry.RawShape, err:geometry.ShapesError = .None) {
-    vertList := mem.make_non_zeroed_dynamic_array([dynamic]geometry.ShapeVertex2D, allocator)
-    indList := mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
+    vertList := make([dynamic]geometry.ShapeVertex2D, allocator)
+    indList := make([dynamic]u32, allocator)
 
     _, rect := _Font_RenderString(auto_cast self, _str, _renderOpt, &vertList, &indList, allocator) or_return
 

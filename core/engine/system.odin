@@ -117,21 +117,6 @@ is_log :: #config(__log__, true)
 
 @(private) engineDefAllocator : runtime.Allocator
 
-@(private, init) engineInit :: proc() {
-	systemInit()
-	systemStart()
-	inited = true
-
-	engineDefAllocator =  runtime.default_allocator()
-}
-
-//must call start
-when is_android {
-	__androidInit :: proc "contextless" (_app : ^android.android_app) {
-		__android_SetApp(_app)
-	}
-}
-
 defAllocator :: proc "contextless" () -> runtime.Allocator {
 	return engineDefAllocator
 }
@@ -144,12 +129,17 @@ engineMain :: proc(
 	_windowHeight:Maybe(u32) = nil,
 	_vSync:VSync = .Double,
 ) {
-	if(!inited) do panic("call xfitInit first!")
+	engineDefAllocator =  runtime.default_allocator()
+	systemInit()
+	systemStart()
+	inited = true
 
 	__windowTitle = _windowTitle
 	when is_android {
 		__windowX = 0
 		__windowY = 0
+
+		__android_SetApp(auto_cast android.get_android_app())
 	} else {
 		__windowX = _windowX
 		__windowY = _windowY
@@ -372,7 +362,7 @@ when is_android {
 		asset := android.AAssetManager_open(android_GetAssetManager(), pathT, .BUFFER)
 		__size := android.AAsset_getLength64(asset)
 
-		data = make_non_zeroed_slice([]u8, auto_cast __size, allocator)
+		data = mem.make_non_zeroed_slice([]u8, auto_cast __size, allocator)
 
 		__read : type_of(__size) = 0
 		for __read < __size {

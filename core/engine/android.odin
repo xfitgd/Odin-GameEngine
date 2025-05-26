@@ -7,6 +7,7 @@ import "core:sync"
 import "core:c"
 import "core:sys/posix"
 import "core:strings"
+import "core:debug/trace"
 import "base:intrinsics"
 import "base:runtime"
 import vk "vendor:vulkan"
@@ -86,7 +87,7 @@ when is_android {
         }
         res := vkCreateAndroidSurfaceKHR(vkInstance, &androidSurfaceCreateInfo, nil, &vkSurface)
         if res != .SUCCESS {
-            panic_log(res)
+            trace.panic_log(res)
         }
     }
     @(private="file") freeSavedState :: proc "contextless" () {

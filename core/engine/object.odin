@@ -114,7 +114,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
     self.__in.set.__set = 0
 
     VkBufferResource_CreateBuffer(&self.__in.__in.matUniform, {
-        len = size_of(Matrix),
+        len = size_of(linalg.Matrix),
         type = .UNIFORM,
     }, mem.ptr_to_bytes(&self.__in.__in.mat), true)
 
