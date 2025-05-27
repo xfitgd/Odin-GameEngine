@@ -326,6 +326,8 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
 
 //! Non Zeroed Alloc
 AllocObject :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    sync.mutex_lock(&gAllocObjectMtx)
+    defer sync.mutex_unlock(&gAllocObjectMtx)
     obj, err := mem.alloc_bytes_non_zeroed(size_of(T),align_of(T), engineDefAllocator)
     if err != .None do return nil, err
 	return transmute(^T)raw_data(obj), .None
@@ -333,6 +335,8 @@ AllocObject :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) wh
 
 //! Non Zeroed Alloc
 AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    sync.mutex_lock(&gAllocObjectMtx)
+    defer sync.mutex_unlock(&gAllocObjectMtx)
     arr, err := mem.alloc_bytes_non_zeroed(count * size_of(T), align_of(T), engineDefAllocator)
     if err != .None do return nil, err
     s := runtime.Raw_Slice{raw_data(arr), count}
@@ -341,6 +345,8 @@ AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, r
 
 //! Non Zeroed Alloc
 AllocObjectDynamic :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    sync.mutex_lock(&gAllocObjectMtx)
+    defer sync.mutex_unlock(&gAllocObjectMtx)
     res, err := make_non_zeroed_dynamic_array([dynamic]T, engineDefAllocator)
     if err != .None do return nil, err
     return res, .None

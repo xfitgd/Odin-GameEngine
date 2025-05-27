@@ -298,4 +298,4 @@ tests/issues/build/*
 misc/featuregen/featuregen
 
 ols
-build_tool.bin
+build_tool
