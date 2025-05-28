@@ -124,7 +124,7 @@ Sound_Deinit :: proc(self:^Sound) {
 }
 
 @(fini, private) g_deinit :: proc() {
-    if !intrinsics.atomic_load_explicit(&started, .Acquire) do trace.panic_log("sound not started. can't destory")
+    if !intrinsics.atomic_load_explicit(&started, .Acquire) do return
     intrinsics.atomic_store_explicit(&started, false, .Release)
     sync.sema_post(&gSema)
     thread.join(gThread)

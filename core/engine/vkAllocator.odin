@@ -112,8 +112,8 @@ VkMemBuffer :: struct {
 @(private="file") gDesciptorPools:map[[^]VkDescriptorPoolSize][dynamic]VkDescriptorPoolMem
 
 ALLOC_OBJ :: struct {
-	typeSize:uint,
-	len:uint,
+	typeSize:u64,
+	len:u64,
 	deinit:proc(obj:^IObject),
 	obj:rawptr,
 }
@@ -198,7 +198,7 @@ vkInitBlockLen :: proc() {
 vkAllocatorInit :: proc() {
 	gVkMemBufs = mem.make_non_zeroed([dynamic]^VkMemBuffer, engineDefAllocator)
 
-	gVkMemIdxCnts = mem.make_non_zeroed([]uint, vkPhysicalMemProp.memoryTypeCount, engineDefAllocator)
+	gVkMemIdxCnts = mem.make_non_zeroed([]int, vkPhysicalMemProp.memoryTypeCount, engineDefAllocator)
 	mem.zero_slice(gVkMemIdxCnts)
 
 	mem.dynamic_arena_init(&__arena, engineDefAllocator, engineDefAllocator, mem.Megabyte * 4, 0)
@@ -266,8 +266,8 @@ vkAllocatorDestroy :: proc() {
 }
 
 @(private = "file") gVkMemBufs: [dynamic]^VkMemBuffer
-@(private = "file") VkMaxMemIdxCnt : uint : 4
-@(private = "file") gVkMemIdxCnts: []uint
+@(private = "file") VkMaxMemIdxCnt : int : 4
+@(private = "file") gVkMemIdxCnts: []int
 
 vkFindMemType :: proc "contextless" (
 	typeFilter: u32,

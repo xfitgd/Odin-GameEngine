@@ -522,8 +522,8 @@ vkCreateSwapChainAndImageViews :: proc() {
 	vk.GetPhysicalDeviceSurfaceCapabilitiesKHR(vkPhysicalDevice, vkSurface, &vkSurfaceCap)
 
 	if(vkSurfaceCap.currentExtent.width == max(u32)) {
-		vkSurfaceCap.currentExtent.width = clamp(__windowWidth.?, vkSurfaceCap.minImageExtent.width, vkSurfaceCap.maxImageExtent.width)
-		vkSurfaceCap.currentExtent.height = clamp(__windowHeight.?, vkSurfaceCap.minImageExtent.height, vkSurfaceCap.maxImageExtent.height)
+		vkSurfaceCap.currentExtent.width = clamp(u32(__windowWidth.?), vkSurfaceCap.minImageExtent.width, vkSurfaceCap.maxImageExtent.width)
+		vkSurfaceCap.currentExtent.height = clamp(u32(__windowHeight.?), vkSurfaceCap.minImageExtent.height, vkSurfaceCap.maxImageExtent.height)
 	}
 	vkExtent = vkSurfaceCap.currentExtent
 	vkExtent_rotation = vkExtent
@@ -546,8 +546,8 @@ vkCreateSwapChainAndImageViews :: proc() {
 		} else if .IDENTITY in vkSurfaceCap.currentTransform {
 			__screenOrientation = .Vertical360
 		}
-		__windowWidth = vkExtent.width
-		__windowHeight = vkExtent.height
+		__windowWidth = int(vkExtent.width)
+		__windowHeight = int(vkExtent.height)
 	}
 
 	vkPresentMode = .FIFO
@@ -1306,7 +1306,7 @@ vkRecreateSurface :: proc() {
 	}
 }
 
-vkRecordCommandBuffer :: proc(cmd:^__RenderCmd, frame:uint) {
+vkRecordCommandBuffer :: proc(cmd:^__RenderCmd, frame:int) {
 	clsColor :vk.ClearValue = {color = {float32 = gClearColor}}
 	clsDepthStencil :vk.ClearValue = {depthStencil = {depth = 1.0, stencil = 0}}
 	clsZero :vk.ClearValue = {depthStencil = {depth = 1.0, stencil = 0}}
@@ -1366,7 +1366,7 @@ vkRecordCommandBuffer :: proc(cmd:^__RenderCmd, frame:uint) {
 }
 
 vkDrawFrame :: proc() {
-	@(static) frame:uint = 0
+	@(static) frame:int = 0
 
 	vkOpExecute(true)
 

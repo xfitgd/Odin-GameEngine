@@ -27,10 +27,10 @@ when !is_mobile {
 
 glfwStart :: proc() {
     //?default screen idx 0
-    if __windowWidth == nil do __windowWidth = u32(monitors[0].rect.size.x / 2)
-	if __windowHeight == nil do __windowHeight = u32(monitors[0].rect.size.y / 2)
-	if __windowX == nil do __windowX = i32(monitors[0].rect.pos.x + monitors[0].rect.size.x / 4)
-	if __windowY == nil do __windowY = i32(monitors[0].rect.pos.y + monitors[0].rect.size.y / 4)
+    if __windowWidth == nil do __windowWidth = int(monitors[0].rect.size.x / 2)
+	if __windowHeight == nil do __windowHeight = int(monitors[0].rect.size.y / 2)
+	if __windowX == nil do __windowX = int(monitors[0].rect.pos.x + monitors[0].rect.size.x / 4)
+	if __windowY == nil do __windowY = int(monitors[0].rect.pos.y + monitors[0].rect.size.y / 4)
 
     SavePrevWindow()
 
@@ -60,7 +60,7 @@ glfwStart :: proc() {
             nil,
             nil)
 
-        glfw.SetWindowPos(wnd, __windowX.?, __windowY.?)
+        glfw.SetWindowPos(wnd, auto_cast __windowX.?, auto_cast __windowY.?)
     }
 
     //CreateRenderFuncThread()
@@ -88,8 +88,8 @@ glfwSetBorderlessScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
 }
 
 glfwSetWindowMode :: proc "contextless" () {
-    glfw.SetWindowMonitor(wnd, nil, prevWindowX,
-        prevWindowY,
+    glfw.SetWindowMonitor(wnd, nil, auto_cast prevWindowX,
+        auto_cast prevWindowY,
         auto_cast prevWindowWidth,
         auto_cast prevWindowHeight,
        glfw.DONT_CARE)
@@ -267,16 +267,16 @@ glfwLoop :: proc() {
         //TODO
     }
     glfwWindowSizeProc :: proc "c" (window: glfw.WindowHandle, width, height: c.int) {
-        __windowWidth = u32(width)
-        __windowHeight = u32(height)
+        __windowWidth = int(width)
+        __windowHeight = int(height)
 
         if loopStart {
             sizeUpdated = true
         }
     }
     glfwWindowPosProc :: proc "c" (window: glfw.WindowHandle, xpos, ypos: c.int) {
-        __windowX = xpos
-        __windowY = ypos
+        __windowX = int(xpos)
+        __windowY = int(ypos)
     }
     glfwWindowCloseProc :: proc "c" (window: glfw.WindowHandle) {
         glfw.SetWindowShouldClose(window, auto_cast Close())

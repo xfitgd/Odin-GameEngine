@@ -91,20 +91,22 @@ IsAnyImageType :: #force_inline proc "contextless" ($ANY_IMAGE:typeid) -> bool {
     Deinit = auto_cast _Super_Image_Deinit,
 }
 
-Image_Init :: proc(self:^Image, $actualType:typeid, src:^Texture, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
-camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
+Image_Init :: proc(self:^Image, $actualType:typeid, src:^Texture, pos:linalg.Point3DF,
+camera:^Camera, projection:^Projection,
+rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
     self.__in2.src = src
         
     self.__in.set.bindings = __transformUniformPoolBinding[:]
     self.__in.set.size = __transformUniformPoolSizes[:]
     self.__in.set.layout = vkTexDescriptorSetLayout
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
     self.__in.vtable = vtable == nil ? &ImageVTable : vtable
-    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast Image_Draw
-    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast Image_Deinit
+    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast _Super_Image_Draw
+    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast _Super_Image_Deinit
 
     self.__in.vtable.__in.__GetUniformResources = auto_cast __GetUniformResources_Default
+
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }
 
 _Super_Image_Deinit :: proc(self:^Image) {
@@ -168,12 +170,13 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
     self.__in.set.size = __animateImageUniformPoolSizes[:]
     self.__in.set.layout = vkAnimateTexDescriptorSetLayout
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
     self.__in.vtable = vtable == nil ? &AnimateImageVTable : vtable
     if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast AnimateImage_Draw
     if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast AnimateImage_Deinit
 
     self.__in.vtable.__in.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
+
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }   
 
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
@@ -235,12 +238,13 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
     self.__in.set.size = __tileImageUniformPoolSizes[:]
     self.__in.set.layout = vkAnimateTexDescriptorSetLayout
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
     self.__in.vtable = vtable == nil ? &TileImageVTable : vtable
     if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast TileImage_Draw
     if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast TileImage_Deinit
 
     self.__in.vtable.__GetUniformResources = auto_cast __GetUniformResources_TileImage
+
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }   
 
 _Super_TileImage_Deinit :: proc(self:^TileImage) {
@@ -310,7 +314,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
         type = .TEX2D,
         resourceUsage = resourceUsage,
         single = false,
-    }, self.__in.sampler, pixels, true)
+    }, self.__in.sampler, pixels, false)
 
     self.__in.set.__resources[0] = &self.__in.texture
     VkUpdateDescriptorSets(mem.slice_ptr(&self.__in.set, 1))
@@ -340,7 +344,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
 // }
 
 
-Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
+@private Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
     mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = 0
     self.__in.set.bindings = nil
@@ -362,7 +366,7 @@ Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int hei
     }, self.__in.sampler, nil)
 }
 
-Texture_InitMSAA :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
+@private Texture_InitMSAA :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
     mem.ICheckInit_Init(&self.__in.checkInit)
     self.__in.sampler = 0
     self.__in.set.bindings = nil

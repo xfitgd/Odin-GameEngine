@@ -25,13 +25,13 @@ import "vendor:android"
 @(private) loopStart := false
 @(private) maxFrame : f64
 @(private) deltaTime : u64
-@(private) processorCoreLen : uint
+@(private) processorCoreLen : int
 @(private) gClearColor : [4]f32 = {0.0, 0.0, 0.0, 1.0}
 
 Exiting :: #force_inline proc  "contextless"() -> bool {return exiting}
 dt :: #force_inline proc "contextless" () -> f64 { return f64(deltaTime) / 1000000000.0 }
 dt_u64 :: #force_inline proc "contextless" () -> u64 { return deltaTime }
-GetProcessorCoreLen :: #force_inline proc "contextless" () -> uint { return processorCoreLen }
+GetProcessorCoreLen :: #force_inline proc "contextless" () -> int { return processorCoreLen }
 
 Init: proc()
 Update: proc()
@@ -123,12 +123,15 @@ defAllocator :: proc "contextless" () -> runtime.Allocator {
 
 engineMain :: proc(
 	_windowTitle:cstring = "xfit",
-	_windowX:Maybe(i32) = nil,
-	_windowY:Maybe(i32) = nil,
-	_windowWidth:Maybe(u32) = nil,
-	_windowHeight:Maybe(u32) = nil,
+	_windowX:Maybe(int) = nil,
+	_windowY:Maybe(int) = nil,
+	_windowWidth:Maybe(int) = nil,
+	_windowHeight:Maybe(int) = nil,
 	_vSync:VSync = .Double,
 ) {
+	assert(!(_windowWidth != nil && _windowWidth.? <= 0))
+	assert(!(_windowHeight != nil && _windowHeight.? <= 0))
+
 	engineDefAllocator =  runtime.default_allocator()
 	systemInit()
 	systemStart()

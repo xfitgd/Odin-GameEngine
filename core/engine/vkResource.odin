@@ -97,7 +97,7 @@ VkTextureResource :: struct {
     __resource:vk.Image,
 }
 
-@(require_results) samplesToVkSampleCountFlags :: proc "contextless"(#any_int samples : uint) -> vk.SampleCountFlags {
+@(require_results) samplesToVkSampleCountFlags :: proc "contextless"(#any_int samples : int) -> vk.SampleCountFlags {
     switch samples {
         case 1: return {._1}
         case 2: return {._2}

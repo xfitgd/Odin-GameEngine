@@ -4,15 +4,15 @@ import "core:sync"
 import "core:debug/trace"
 import "core:math/linalg"
 
-@(private) __windowWidth: Maybe(u32)
-@(private) __windowHeight: Maybe(u32)
-@(private) __windowX: Maybe(i32)
-@(private) __windowY: Maybe(i32)
+@(private) __windowWidth: Maybe(int)
+@(private) __windowHeight: Maybe(int)
+@(private) __windowX: Maybe(int)
+@(private) __windowY: Maybe(int)
 
-@(private) prevWindowX: i32
-@(private) prevWindowY: i32
-@(private) prevWindowWidth: u32
-@(private) prevWindowHeight: u32
+@(private) prevWindowX: int
+@(private) prevWindowY: int
+@(private) prevWindowWidth: int
+@(private) prevWindowHeight: int
 
 @(private) __screenIdx: int = 0
 @(private) __screenMode: ScreenMode
@@ -119,21 +119,21 @@ GetCurrentMonitor :: proc "contextless" () -> ^MonitorInfo {
 GetMonitorFromWindow :: proc "contextless" () -> ^MonitorInfo #no_bounds_check {
 	if !monitorLocked do trace.panic_log("call inside monitorLock")
 	for &value in monitors {
-		if linalg.Rect_PointIn(value.rect, [2]i32{__windowX.?, __windowY.?}) do return &value
+		if linalg.Rect_PointIn(value.rect, [2]i32{auto_cast __windowX.?, auto_cast __windowY.?}) do return &value
 	}
 	return primaryMonitor
 }
 
-WindowWidth :: proc "contextless" () -> u32 {
+WindowWidth :: proc "contextless" () -> int {
 	return __windowWidth.?
 }
-WindowHeight :: proc "contextless" () -> u32 {
+WindowHeight :: proc "contextless" () -> int {
 	return __windowHeight.?
 }
-WindowX :: proc "contextless" () -> i32 {
+WindowX :: proc "contextless" () -> int {
 	return __windowX.?
 }
-WindowY :: proc "contextless" () -> i32 {
+WindowY :: proc "contextless" () -> int {
 	return __windowY.?
 }
 SetVSync :: proc "contextless" (vSync:VSync) {
