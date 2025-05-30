@@ -4,6 +4,7 @@ import "core:math"
 import "core:mem"
 import "core:slice"
 import "core:sync"
+import "core:thread"
 import "core:debug/trace"
 import "core:math/linalg"
 import "base:intrinsics"
@@ -347,38 +348,45 @@ AllocObjectDynamic :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allo
 }
 
 FreeObject :: #force_inline proc(obj:^$T) where intrinsics.type_is_subtype_of(T, IObject) {
-    aObj := ALLOC_OBJ{
+    aObj := FREE_OBJ{
         typeSize = size_of(T),
         len = 1,
         deinit = obj.__in.vtable.Deinit,
         obj = rawptr(obj),
     }
-    sync.mutex_lock(&gAllocObjectMtx)
-    append(&gAllocObjects, aObj)
-    sync.mutex_unlock(&gAllocObjectMtx)
+    sync.mutex_lock(&gFreeObjectMtx)
+    append(&gFreeObjects, aObj)
+    sync.mutex_unlock(&gFreeObjectMtx)
 }
 
 FreeObjectSlice :: #force_inline proc(arr:$T/[]$E) where intrinsics.type_is_subtype_of(E, IObject) {
-    aObj := ALLOC_OBJ{
+    aObj := FREE_OBJ{
         typeSize = size_of(E),
         len = len(arr),
         deinit = len(arr) > 0 ? arr[0].__in.vtable.Deinit : nil,
         obj = rawptr(raw_data(arr)),
     }
-    sync.mutex_lock(&gAllocObjectMtx)
-    append(&gAllocObjects, aObj)
-    sync.mutex_unlock(&gAllocObjectMtx)
+    sync.mutex_lock(&gFreeObjectMtx)
+    append(&gFreeObjects, aObj)
+    sync.mutex_unlock(&gFreeObjectMtx)
 }
 
 FreeObjectDynamic :: #force_inline proc(arr:$T/[dynamic]$E) where intrinsics.type_is_subtype_of(E, IObject) {
-    aObj := ALLOC_OBJ{
+    aObj := FREE_OBJ{
         typeSize = size_of(E),
         len = cap(arr),
         deinit = len(arr) > 0 ? arr[0].__in.vtable.Deinit : nil,
         obj = rawptr(raw_data(arr)),
     }
-    sync.mutex_lock(&gAllocObjectMtx)
-    append(&gAllocObjects, aObj)
-    sync.mutex_unlock(&gAllocObjectMtx)
+    sync.mutex_lock(&gFreeObjectMtx)
+    append(&gFreeObjects, aObj)
+    sync.mutex_unlock(&gFreeObjectMtx)
 }
 
+GraphicsWaitAllOps :: #force_inline proc () {
+    if IsInMainThread() {
+        vkOpExecute(true)
+    } else {
+        vkWaitAllOp()
+    }
+}

@@ -383,3 +383,7 @@ when is_android {
 		return
 	}
 }
+
+IsInMainThread :: #force_inline proc "contextless" () -> bool {
+	return sync.current_thread_id() == vkThreadId
+}

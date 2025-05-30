@@ -12,11 +12,11 @@ import "vendor:webp"
 }
 
 @private webp_decoder_in :: struct {
-    input_data:[]u8,
     anim_dec:^webp.WebPAnimDecoder,
     anim_info:webp.WebPAnimInfo,
     out_fmt:color_fmt,
     config:webp_config,
+    allocator:runtime.Allocator,
 }
 webp_decoder :: struct {
     __in : webp_decoder_in,
@@ -71,7 +71,7 @@ webp_decoder_frame_cnt :: proc "contextless" (self:^webp_decoder) -> int {
     return -1
 }
 
-webp_decoder_deinit :: proc "contextless" (self:^webp_decoder) {
+webp_decoder_deinit :: proc (self:^webp_decoder) {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPDecoderConfig:
@@ -84,7 +84,7 @@ webp_decoder_deinit :: proc "contextless" (self:^webp_decoder) {
     }
 }
 
-webp_decoder_load_header :: proc "contextless" (self:^webp_decoder, data:[]u8, out_fmt:color_fmt) -> int {
+webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, int) {
     webp_decoder_deinit(self)
 
     errCode := 0
@@ -126,7 +126,7 @@ webp_decoder_load_header :: proc "contextless" (self:^webp_decoder, data:[]u8, o
         errCode = auto_cast webp.WebPGetFeatures(&data[0], len(data), &op.input)
         if errCode != cast(int)webp.VP8StatusCode.OK {
             self.__in.config = nil
-            return errCode
+            return nil, errCode
         }
 
         op.options.scaled_width = op.input.width
@@ -135,15 +135,9 @@ webp_decoder_load_header :: proc "contextless" (self:^webp_decoder, data:[]u8, o
     }
 
     self.__in.out_fmt = out_fmt
-    self.__in.input_data = data
+    self.__in.allocator = allocator
 
-    return errCode
-}
-
-webp_decoder_decode :: proc "contextless" (self:^webp_decoder, out_data:[]u8) -> int {
-    if self.__in.config == nil {
-        trace.panic_log("webp_decoder_decode load_header first!")
-    }
+    out_data := mem.make_non_zeroed_slice([]byte, webp_decoder_size(self), allocator)
 
     bit := color_fmt_bit(self.__in.out_fmt) >> 3
 
@@ -152,33 +146,31 @@ webp_decoder_decode :: proc "contextless" (self:^webp_decoder, out_data:[]u8) ->
         t.output.u.RGBA.rgba = &out_data[0]
         t.output.u.RGBA.stride = t.input.width * i32(bit)
         t.output.u.RGBA.size = uint(t.output.u.RGBA.stride * t.input.height)
-        if int(t.output.u.RGBA.size) > len(out_data)  {
-            trace.panic_log("webp_decoder_decode out_data too small")
-        }
         t.output.is_external_memory = 1
 
-        errCode := webp.WebPDecode(&self.__in.input_data[0], len(self.__in.input_data), &t)
-        if errCode != .OK do return int(errCode)
-
+        errC := webp.WebPDecode(&data[0], len(data), &t)
+        if errC != .OK {
+            delete(out_data, allocator)
+            return nil, int(errCode)
+        }
     case webp.WebPAnimDecoderOptions:
         idx := 0
 
         frame_size := int(self.__in.anim_info.canvas_width * self.__in.anim_info.canvas_height) * bit
-        if int(self.__in.anim_info.frame_count) * frame_size > len(out_data)  {
-            trace.panic_log("webp_decoder_decode out_data too small")
-        }
 
         for 0 < webp.WebPAnimDecoderHasMoreFrames(self.__in.anim_dec) {
             timestamp : i32
             buf : [^]u8
 
             if 0 == webp.WebPAnimDecoderGetNext(self.__in.anim_dec, &buf, &timestamp) {
-                return -1
+                delete(out_data, allocator)
+                return nil, -1
             }
             intrinsics.mem_copy_non_overlapping(&out_data[idx], buf, frame_size)
 
             idx += frame_size
         }
     }
-    return 0
+
+    return out_data, errCode
 }

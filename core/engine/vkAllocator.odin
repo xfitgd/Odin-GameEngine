@@ -111,14 +111,20 @@ VkMemBuffer :: struct {
 @(private="file") gVkUpdateDesciptorSetList:[dynamic]vk.WriteDescriptorSet
 @(private="file") gDesciptorPools:map[[^]VkDescriptorPoolSize][dynamic]VkDescriptorPoolMem
 
-ALLOC_OBJ :: struct {
+@(private="file") gWaitOpSem:sync.Sema
+
+FREE_OBJ :: struct {
 	typeSize:u64,
 	len:u64,
 	deinit:proc(obj:^IObject),
 	obj:rawptr,
 }
-gAllocObjects:[dynamic]ALLOC_OBJ
-gAllocObjectMtx:sync.Mutex
+gFreeObjects:[dynamic]FREE_OBJ
+gFreeObjectMtx:sync.Mutex
+
+vkWaitAllOp :: #force_inline proc "contextless" () {
+	sync.sema_wait(&gWaitOpSem)
+}
 
 vkInitBlockLen :: proc() {
 	_ChangeSize :: #force_inline proc(heapSize: vk.DeviceSize) {
@@ -196,6 +202,7 @@ vkInitBlockLen :: proc() {
 
 
 vkAllocatorInit :: proc() {
+	vkThreadId = sync.current_thread_id()
 	gVkMemBufs = mem.make_non_zeroed([dynamic]^VkMemBuffer, engineDefAllocator)
 
 	gVkMemIdxCnts = mem.make_non_zeroed([]int, vkPhysicalMemProp.memoryTypeCount, engineDefAllocator)
@@ -236,7 +243,7 @@ vkAllocatorInit :: proc() {
 	opDestroyQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
 	gVkUpdateDesciptorSetList = mem.make_non_zeroed([dynamic]vk.WriteDescriptorSet, vkArenaAllocator)
 
-	gAllocObjects = mem.make_non_zeroed([dynamic]ALLOC_OBJ, engineDefAllocator)
+	gFreeObjects = mem.make_non_zeroed([dynamic]FREE_OBJ, vkArenaAllocator)
 }
 
 vkAllocatorDestroy :: proc() {
@@ -261,13 +268,14 @@ vkAllocatorDestroy :: proc() {
 	mem.dynamic_arena_destroy(&__bufTempArena)
 	mem.dynamic_arena_destroy(&__allocArena)
 
-	delete(gAllocObjects)
 	delete(gVkMemIdxCnts, engineDefAllocator)
 }
 
 @(private = "file") gVkMemBufs: [dynamic]^VkMemBuffer
 @(private = "file") VkMaxMemIdxCnt : int : 4
 @(private = "file") gVkMemIdxCnts: []int
+
+vkThreadId:int
 
 vkFindMemType :: proc "contextless" (
 	typeFilter: u32,
@@ -1289,6 +1297,8 @@ vkOpExecuteDestroy :: proc() {
 	sync.atomic_mutex_lock(&gDestroyQueueMtx)
 	if len(opDestroyQueue) == 0 {
 		sync.atomic_mutex_unlock(&gDestroyQueueMtx)
+
+		sync.sema_post(&gWaitOpSem)
 		return
 	}
 	for node in opDestroyQueue {
@@ -1299,20 +1309,22 @@ vkOpExecuteDestroy :: proc() {
 				ExecuteDestroyTexture(n.src)
 		}
 	}
-	sync.mutex_lock(&gAllocObjectMtx)
-	for &o in gAllocObjects {
+	sync.mutex_lock(&gFreeObjectMtx)
+	for &o in gFreeObjects {
 		for i in 0 ..< o.len {
 			o.deinit(  auto_cast &(([^]byte)(o.obj))[i * o.typeSize] )
 		}
 		mem.free_with_size(o.obj, int(o.len * o.typeSize), engineDefAllocator)
 	}
-	clear(&gAllocObjects)
-	sync.mutex_unlock(&gAllocObjectMtx)
+	clear(&gFreeObjects)
+	sync.mutex_unlock(&gFreeObjectMtx)
 	
 	clear(&opDestroyQueue)
 
 	sync.atomic_mutex_unlock(&gDestroyQueueMtx)
 	mem.dynamic_arena_reset(&__bufTempArena)
+
+	sync.sema_post(&gWaitOpSem)
 }
 vkWaitAllocatorCmdFence :: #force_inline proc  "contextless" () {
 	if gFenceNeedWait {
@@ -1439,10 +1451,13 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 	} else if waitAndDestroy {
 		vkWaitAllocatorCmdFence()
 		vkOpExecuteDestroy()
+	} else {
+		sync.sema_post(&gWaitOpSem)
 	}
 
 	mem.dynamic_arena_reset(&__tempArena)
 
 	clear(&opSaveQueue)
+
 }
 
