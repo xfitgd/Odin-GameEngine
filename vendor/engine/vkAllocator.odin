@@ -101,8 +101,6 @@ VkMemBuffer :: struct {
 
 @(private="file") cmdPool:vk.CommandPool
 @(private="file") gCmd:vk.CommandBuffer
-@(private="file") gFence:vk.Fence
-@(private="file") gFenceNeedWait := false
 @(private="file") opQueue:[dynamic]OpNode
 @(private="file") opSaveQueue:[dynamic]OpNode
 @(private="file") opMapQueue:[dynamic]OpNode
@@ -229,13 +227,6 @@ vkAllocatorInit :: proc() {
 	}
 	vk.AllocateCommandBuffers(vkDevice, &cmdAllocInfo, &gCmd)
 
-
-	fenceInfo := vk.FenceCreateInfo {
-		sType = .FENCE_CREATE_INFO,
-		flags = {.SIGNALED},
-	}
-	vk.CreateFence(vkDevice, &fenceInfo, nil, &gFence)
-
 	opQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
 	opSaveQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
 	opMapQueue = mem.make_non_zeroed([dynamic]OpNode, vkArenaAllocator)
@@ -254,7 +245,6 @@ vkAllocatorDestroy :: proc() {
 	}
 	delete(gVkMemBufs)
 
-	vk.DestroyFence(vkDevice, gFence, nil)
 	vk.DestroyCommandPool(vkDevice, cmdPool, nil)
 
 	for _, &value in gDesciptorPools {
@@ -1254,10 +1244,10 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 
 	if self.mapStart > startIdx || self.mapSize + self.mapStart < endIdx || self.mapSize < endIdx - startIdx {
 		if self.mapSize > 0 do VkMemBuffer_UnMap(self)
-		outData: [^]byte = VkMemBuffer_Map(self, startIdx, size)
-		self.mapData = outData
-		self.mapSize = size
-		self.mapStart = startIdx
+	outData: [^]byte = VkMemBuffer_Map(self, startIdx, size)
+	self.mapData = outData
+	self.mapSize = size
+	self.mapStart = startIdx
 	} else {
 		if self.cache {
 			res := vk.InvalidateMappedMemoryRanges(vkDevice, offIdx, raw_data(ranges))
@@ -1326,19 +1316,13 @@ vkOpExecuteDestroy :: proc() {
 
 	sync.sema_post(&gWaitOpSem)
 }
-vkWaitAllocatorCmdFence :: #force_inline proc  "contextless" () {
-	if gFenceNeedWait {
-		res := vk.WaitForFences(vkDevice, 1, &gFence, true, max(u64))
-		if res != .SUCCESS do trace.panic_log("res := vk.WaitForFences(vkDevice, 1, &gFence, true, max(u64)) : ", res)
-		gFenceNeedWait = false
-	}
-}
+
 vkOpExecute :: proc(waitAndDestroy: bool) {
 	sync.atomic_mutex_lock(&gQueueMtx)
 	if len(opQueue) == 0 {
 		sync.atomic_mutex_unlock(&gQueueMtx)
 		if waitAndDestroy {
-			vkWaitAllocatorCmdFence()
+			vkWaitGraphicsIdle()
 			vkOpExecuteDestroy()
 		}
 		return
@@ -1435,21 +1419,18 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 			}
 		}
 		vk.EndCommandBuffer(gCmd)
-
-		gFenceNeedWait = true
-		vk.ResetFences(vkDevice, 1, &gFence)
 		submitInfo := vk.SubmitInfo {
 			commandBufferCount = 1,
 			pCommandBuffers    = &gCmd,
 			sType              = .SUBMIT_INFO,
 		}
-		res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, gFence)
+		res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, 0)
 		if res != .SUCCESS do trace.panic_log("res := vk.QueueSubmit(vkGraphicsQueue, 1, &submitInfo, 0) : ", res)
 
-		vkWaitAllocatorCmdFence()
+		vkWaitGraphicsIdle()
 		vkOpExecuteDestroy()
 	} else if waitAndDestroy {
-		vkWaitAllocatorCmdFence()
+		vkWaitGraphicsIdle()
 		vkOpExecuteDestroy()
 	} else {
 		sync.sema_post(&gWaitOpSem)

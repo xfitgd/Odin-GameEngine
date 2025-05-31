@@ -1187,6 +1187,8 @@ vkStart :: proc() {
 
 	vkCreateSwapChainAndImageViews()
 	vkCreateSyncObject()
+
+	vkWaitAllOp()//reset wait
 }
 
 vkDestory :: proc() {
