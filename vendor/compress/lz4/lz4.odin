@@ -1,5 +1,6 @@
 package vendor_compress_lz4
 
+//TODO LIB Update
 when ODIN_OS == .Windows {
 	@(extra_linker_flags="/NODEFAULTLIB:libcmt")
 	foreign import lib "lib/liblz4_static.lib"

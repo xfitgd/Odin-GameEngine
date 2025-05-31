@@ -100,6 +100,19 @@ _ :: stbrp
 //_ :: stbtt
 //_ :: stb_vorbis
 
+
+import engine "vendor:engine"
+import components "vendor:engine/components"
+import font "vendor:engine/font"
+import gui "vendor:engine/gui"
+import sound "vendor:engine/sound"
+
+_ :: engine
+_ :: components
+_ :: font
+_ :: gui
+_ :: sound
+
 import android "vendor:android"
 
 import ogg "vendor:ogg"

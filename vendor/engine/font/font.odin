@@ -2,7 +2,7 @@ package font
 
 
 import "core:math"
-import "core:engine"
+import "../"
 import "core:c"
 import "core:mem"
 import "core:slice"
