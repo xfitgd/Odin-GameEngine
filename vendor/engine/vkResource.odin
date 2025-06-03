@@ -14,6 +14,7 @@ VkResourceRange :: rawptr
 
 VkDescriptorType :: enum {
     SAMPLER,  //vk.DescriptorType.COMBINED_IMAGE_SAMPLER
+    UNIFORM_DYNAMIC,  //vk.DescriptorType.UNIFORM_BUFFER_DYNAMIC
     UNIFORM,  //vk.DescriptorType.UNIFORM_BUFFER
     STORAGE,
     STORAGE_IMAGE,//TODO
@@ -81,7 +82,8 @@ VkUnionResource :: union #no_nil {
     ^VkTextureResource
 }
 VkBaseResource :: struct {
-    idx:VkResourceRange,
+    gUniformIndices : [4]vk.DeviceSize,
+    idx:VkResourceRange,//unused uniform buffer
     vkMemBuffer:^VkMemBuffer,
 }
 VkBufferResource :: struct {
@@ -121,6 +123,7 @@ VkTextureResource :: struct {
     switch t {
         case .SAMPLER : return .COMBINED_IMAGE_SAMPLER
         case .UNIFORM : return .UNIFORM_BUFFER
+        case .UNIFORM_DYNAMIC : return .UNIFORM_BUFFER_DYNAMIC
         case .STORAGE : return .STORAGE_BUFFER
         case .STORAGE_IMAGE : return .STORAGE_IMAGE
     }

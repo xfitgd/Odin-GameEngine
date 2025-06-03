@@ -22,7 +22,7 @@ ImageCenterPtPos :: enum {
     BottomRight,
 }
 
-__TextureIn :: struct {
+@private __TextureIn :: struct {
     texture:VkTextureResource,
     set:VkDescriptorSet,
     sampler: vk.Sampler,
@@ -30,39 +30,39 @@ __TextureIn :: struct {
 }
 
 Texture :: struct {
-    __in: __TextureIn,
+    using _: __TextureIn,
 }
 
 TextureArray :: struct {
-    __in: __TextureArrayIn,
+    using _: __TextureArrayIn,
 }
 
-__TextureArrayIn :: distinct __TextureIn
+@private __TextureArrayIn :: distinct __TextureIn
 
 TileTextureArray :: struct {
-    __in: __TileTextureArrayIn,
+    using _: __TileTextureArrayIn,
 }
 
-__TileTextureArrayIn :: struct {
-    using textureArrayIn:__TextureArrayIn,
+@private __TileTextureArrayIn :: struct {
+    using _:__TextureArrayIn,
     allocPixels:[]byte,
 }
 
 Image :: struct {
     using object:IObject,
-    __in2: __ImageIn,
+    using _: __ImageIn,
 }
 
-__ImageIn :: struct {
+@private __ImageIn :: struct {
     src: ^Texture,
 }
 
 AnimateImage :: struct {
     using object:IObject,
-    __in2: __AnimateImageIn,
+    using _: __AnimateImageIn,
 }
 
-__AnimateImageIn :: struct {
+@private __AnimateImageIn :: struct {
     frameUniform:VkBufferResource,
     frame:u32,
     src: ^TextureArray,
@@ -70,7 +70,7 @@ __AnimateImageIn :: struct {
 
 TileImage :: struct {
     using object:IObject,
-    __in2: __TileImageIn,
+    using _: __TileImageIn,
 }
 
 __TileImageIn :: struct {
@@ -94,28 +94,28 @@ IsAnyImageType :: #force_inline proc "contextless" ($ANY_IMAGE:typeid) -> bool {
 Image_Init :: proc(self:^Image, $actualType:typeid, src:^Texture, pos:linalg.Point3DF,
 camera:^Camera, projection:^Projection,
 rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
-    self.__in2.src = src
+    self.src = src
         
-    self.__in.set.bindings = __transformUniformPoolBinding[:]
-    self.__in.set.size = __transformUniformPoolSizes[:]
-    self.__in.set.layout = vkTexDescriptorSetLayout
+    self.set.bindings = __transformUniformPoolBinding[:]
+    self.set.size = __transformUniformPoolSizes[:]
+    self.set.layout = vkTexDescriptorSetLayout
 
-    self.__in.vtable = vtable == nil ? &ImageVTable : vtable
-    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast _Super_Image_Draw
-    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast _Super_Image_Deinit
+    self.vtable = vtable == nil ? &ImageVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_Image_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_Image_Deinit
 
-    self.__in.vtable.__in.__GetUniformResources = auto_cast __GetUniformResources_Default
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_Default
 
     IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }
 
 _Super_Image_Deinit :: proc(self:^Image) {
-    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 Image_GetTexture :: #force_inline proc "contextless" (self:^Image) -> ^Texture {
-    return self.__in2.src
+    return self.src
 }
 Image_GetCamera :: proc "contextless" (self:^Image) -> ^Camera {
     return IObject_GetCamera(self)
@@ -139,19 +139,19 @@ Image_UpdateProjection :: #force_inline proc(self:^Image, projection:^Projection
     IObject_UpdateProjection(self, projection)
 }
 Image_UpdateTexture :: #force_inline proc "contextless" (self:^Image, src:^Texture) {
-    self.__in2.src = src
+    self.src = src
 }
 Image_UpdateColorTransform :: #force_inline proc(self:^Image, colorTransform:^ColorTransform) {
     IObject_UpdateColorTransform(self, colorTransform)
 }
 
 _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.checkInit)
+    mem.ICheckInit_Check(&self.src.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkTexPipelineLayout, 0, 2, 
-        &([]vk.DescriptorSet{self.__in.set.__set, self.__in2.src.__in.set.__set})[0], 0, nil)
+        &([]vk.DescriptorSet{self.set.__set, self.src.set.__set})[0], 0, nil)
 
     vk.CmdDraw(cmd, 6, 1, 0, 0)
 }
@@ -164,37 +164,37 @@ _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
 
 AnimateImage_Init :: proc(self:^AnimateImage, $actualType:typeid, src:^TextureArray, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
 camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, AnimateImage) {
-    self.__in2.src = src
+    self.src = src
     
-    self.__in.set.bindings = __animateImageUniformPoolBinding[:]
-    self.__in.set.size = __animateImageUniformPoolSizes[:]
-    self.__in.set.layout = vkAnimateTexDescriptorSetLayout
+    self.set.bindings = __animateImageUniformPoolBinding[:]
+    self.set.size = __animateImageUniformPoolSizes[:]
+    self.set.layout = vkAnimateTexDescriptorSetLayout
 
-    self.__in.vtable = vtable == nil ? &AnimateImageVTable : vtable
-    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast AnimateImage_Draw
-    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast AnimateImage_Deinit
+    self.vtable = vtable == nil ? &AnimateImageVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast AnimateImage_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast AnimateImage_Deinit
 
-    self.__in.vtable.__in.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
 
     IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }   
 
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
-    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 AnimateImage_GetTextureArray :: #force_inline proc "contextless" (self:^AnimateImage) -> ^TextureArray {
-    return self.__in2.src
+    return self.src
 }
 AnimateImage_GetCamera :: proc "contextless" (self:^AnimateImage) -> ^Camera {
-    return self.__in.camera
+    return self.camera
 }
 AnimateImage_GetProjection :: proc "contextless" (self:^AnimateImage) -> ^Projection {
-    return self.__in.projection
+    return self.projection
 }
 AnimateImage_GetColorTransform :: proc "contextless" (self:^AnimateImage) -> ^ColorTransform {
-    return self.__in.colorTransform
+    return self.colorTransform
 }
 AnimateImage_UpdateTransform :: #force_inline proc(self:^AnimateImage, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, pivot:linalg.PointF = {0.0,0.0}) {
     IObject_UpdateTransform(self, pos, rotation, scale, pivot)
@@ -209,18 +209,18 @@ AnimateImage_UpdateCamera :: #force_inline proc(self:^AnimateImage, camera:^Came
     IObject_UpdateCamera(self, camera)
 }
 AnimateImage_UpdateTextureArray :: #force_inline proc "contextless" (self:^AnimateImage, src:^TextureArray) {
-    self.__in2.src = src
+    self.src = src
 }
 AnimateImage_UpdateProjection :: #force_inline proc(self:^AnimateImage, projection:^Projection) {
     IObject_UpdateProjection(self, projection)
 }
 _Super_AnimateImage_Draw :: proc (self:^AnimateImage, cmd:vk.CommandBuffer) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.checkInit)
+    mem.ICheckInit_Check(&self.src.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkAnimateTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkAnimateTexPipelineLayout, 0, 2, 
-        &([]vk.DescriptorSet{self.__in.set.__set, self.__in2.src.__in.set.__set})[0], 0, nil)
+        &([]vk.DescriptorSet{self.set.__set, self.src.set.__set})[0], 0, nil)
 
     vk.CmdDraw(cmd, 6, 1, 0, 0)
 }
@@ -232,31 +232,31 @@ _Super_AnimateImage_Draw :: proc (self:^AnimateImage, cmd:vk.CommandBuffer) {
 
 TileImage_Init :: proc(self:^TileImage, $actualType:typeid, src:^TileTextureArray, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
 camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, TileImage) {
-    self.__in2.src = src
+    self.src = src
 
-    self.__in.set.bindings = __tileImageUniformPoolBinding[:]
-    self.__in.set.size = __tileImageUniformPoolSizes[:]
-    self.__in.set.layout = vkAnimateTexDescriptorSetLayout
+    self.set.bindings = __tileImageUniformPoolBinding[:]
+    self.set.size = __tileImageUniformPoolSizes[:]
+    self.set.layout = vkAnimateTexDescriptorSetLayout
 
-    self.__in.vtable = vtable == nil ? &TileImageVTable : vtable
-    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast TileImage_Draw
-    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast TileImage_Deinit
+    self.vtable = vtable == nil ? &TileImageVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast TileImage_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast TileImage_Deinit
 
-    self.__in.vtable.__GetUniformResources = auto_cast __GetUniformResources_TileImage
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_TileImage
 
     IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
 }   
 
 _Super_TileImage_Deinit :: proc(self:^TileImage) {
-    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 TileImage_GetTileTextureArray :: #force_inline proc "contextless" (self:^TileImage) -> ^TileTextureArray {
-    return self.__in2.src
+    return self.src
 }
 TileImage_UpdateTileTextureArray :: #force_inline proc "contextless" (self:^TileImage, src:^TileTextureArray) {
-    self.__in2.src = src
+    self.src = src
 }
 TileImage_UpdateTransform :: #force_inline proc(self:^TileImage, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, pivot:linalg.PointF = {0.0, 0.0}) {
     IObject_UpdateTransform(self, pos, rotation, scale, pivot)
@@ -284,26 +284,26 @@ TileImage_UpdateTransformMatrixRaw :: #force_inline proc(self:^TileImage, _mat:l
 }
 
 _Super_TileImage_Draw :: proc (self:^TileImage, cmd:vk.CommandBuffer) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    mem.ICheckInit_Check(&self.__in2.src.__in.checkInit)
+    mem.ICheckInit_Check(&self.checkInit)
+    mem.ICheckInit_Check(&self.src.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkAnimateTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkAnimateTexPipelineLayout, 0, 2, 
-        &([]vk.DescriptorSet{self.__in.set.__set, self.__in2.src.__in.set.__set})[0], 0, nil)
+        &([]vk.DescriptorSet{self.set.__set, self.src.set.__set})[0], 0, nil)
 
     vk.CmdDraw(cmd, 6, 1, 0, 0)
 }
 
 
-Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pixels:Maybe([]byte), sampler:vk.Sampler = 0, resourceUsage:ResourceUsage = .GPU) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
-    self.__in.set.bindings = __singlePoolBinding[:]
-    self.__in.set.size = __singleSamplerPoolSizes[:]
-    self.__in.set.layout = vkTexDescriptorSetLayout2
-    self.__in.set.__set = 0
+Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pixels:[]byte, sampler:vk.Sampler = 0, resourceUsage:ResourceUsage = .GPU) {
+    mem.ICheckInit_Init(&self.checkInit)
+    self.sampler = sampler == 0 ? vkLinearSampler : sampler
+    self.set.bindings = __singlePoolBinding[:]
+    self.set.size = __singleSamplerPoolSizes[:]
+    self.set.layout = vkTexDescriptorSetLayout2
+    self.set.__set = 0
    
-    VkBufferResource_CreateTexture(&self.__in.texture, {
+    VkBufferResource_CreateTexture(&self.texture, {
         width = auto_cast width,
         height = auto_cast height,
         useGCPUMem = false,
@@ -314,22 +314,22 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
         type = .TEX2D,
         resourceUsage = resourceUsage,
         single = false,
-    }, self.__in.sampler, pixels, false)
+    }, self.sampler, pixels, false)
 
-    self.__in.set.__resources[0] = &self.__in.texture
-    VkUpdateDescriptorSets(mem.slice_ptr(&self.__in.set, 1))
+    self.set.__resources[0] = &self.texture
+    VkUpdateDescriptorSets(mem.slice_ptr(&self.set, 1))
 }
 
 //sampler nil default //TODO
 // Texture_InitR8 :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-//     mem.ICheckInit_Init(&self.__in.checkInit)
-//     self.__in.sampler = 0
-//     self.__in.set.bindings = nil
-//     self.__in.set.size = nil
-//     self.__in.set.layout = 0
-//     self.__in.set.__set = 0
+//     mem.ICheckInit_Init(&self.checkInit)
+//     self.sampler = 0
+//     self.set.bindings = nil
+//     self.set.size = nil
+//     self.set.layout = 0
+//     self.set.__set = 0
 
-//     VkBufferResource_CreateTexture(&self.__in.texture, {
+//     VkBufferResource_CreateTexture(&self.texture, {
 //         width = auto_cast width,
 //         height = auto_cast height,
 //         useGCPUMem = false,
@@ -340,19 +340,19 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
 //         type = .TEX2D,
 //         resourceUsage = .GPU,
 //         single = true,
-//     }, self.__in.sampler, nil)
+//     }, self.sampler, nil)
 // }
 
 
 @private Texture_InitDepthStencil :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.sampler = 0
-    self.__in.set.bindings = nil
-    self.__in.set.size = nil
-    self.__in.set.layout = 0
-    self.__in.set.__set = 0
+    mem.ICheckInit_Init(&self.checkInit)
+    self.sampler = 0
+    self.set.bindings = nil
+    self.set.size = nil
+    self.set.layout = 0
+    self.set.__set = 0
 
-    VkBufferResource_CreateTexture(&self.__in.texture, {
+    VkBufferResource_CreateTexture(&self.texture, {
         width = auto_cast width,
         height = auto_cast height,
         useGCPUMem = false,
@@ -363,18 +363,18 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
         type = .TEX2D,
         single = true,
         resourceUsage = .GPU
-    }, self.__in.sampler, nil)
+    }, self.sampler, nil)
 }
 
 @private Texture_InitMSAA :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.sampler = 0
-    self.__in.set.bindings = nil
-    self.__in.set.size = nil
-    self.__in.set.layout = 0
-    self.__in.set.__set = 0
+    mem.ICheckInit_Init(&self.checkInit)
+    self.sampler = 0
+    self.set.bindings = nil
+    self.set.size = nil
+    self.set.layout = 0
+    self.set.__set = 0
 
-    VkBufferResource_CreateTexture(&self.__in.texture, {
+    VkBufferResource_CreateTexture(&self.texture, {
         width = auto_cast width,
         height = auto_cast height,
         useGCPUMem = false,
@@ -385,7 +385,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
         type = .TEX2D,
         single = true,
         resourceUsage = .GPU
-    }, self.__in.sampler, nil)
+    }, self.sampler, nil)
 }
 
 Texture_InitFile :: proc(self:^Texture, file:string, sampler:vk.Sampler = 0) {
@@ -398,15 +398,15 @@ Texture_InitFileData :: proc(self:^Texture, fileData:[]byte, sampler:vk.Sampler 
 
 
 Texture_Deinit :: proc(self:^Texture) {
-    mem.ICheckInit_Deinit(&self.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.texture)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.texture)
 }
 
 Texture_Width :: #force_inline proc "contextless" (self:^Texture) -> int {
-    return auto_cast self.__in.texture.option.width
+    return auto_cast self.texture.option.width
 }
 Texture_Height :: #force_inline proc "contextless" (self:^Texture) -> int {
-    return auto_cast self.__in.texture.option.height
+    return auto_cast self.texture.option.height
 }
 
 GetDefaultLinearSampler :: #force_inline proc "contextless" () -> vk.Sampler {
@@ -417,21 +417,21 @@ GetDefaultNearestSampler :: #force_inline proc "contextless" () -> vk.Sampler {
 }
 
 Texture_UpdateSampler :: #force_inline proc "contextless" (self:^Texture, sampler:vk.Sampler) {
-    self.__in.sampler = sampler
+    self.sampler = sampler
 }
 Texture_GetSampler :: #force_inline proc "contextless" (self:^Texture) -> vk.Sampler {
-    return self.__in.sampler
+    return self.sampler
 }
 
-TextureArray_Init :: proc(self:^TextureArray, #any_int width:int, #any_int height:int, #any_int count:int, pixels:Maybe([]byte), sampler:vk.Sampler = 0) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
-    self.__in.set.bindings = __singlePoolBinding[:]
-    self.__in.set.size = __singleSamplerPoolSizes[:]
-    self.__in.set.layout = vkTexDescriptorSetLayout2
-    self.__in.set.__set = 0
+TextureArray_Init :: proc(self:^TextureArray, #any_int width:int, #any_int height:int, #any_int count:int, pixels:[]byte, sampler:vk.Sampler = 0) {
+    mem.ICheckInit_Init(&self.checkInit)
+    self.sampler = sampler == 0 ? vkLinearSampler : sampler
+    self.set.bindings = __singlePoolBinding[:]
+    self.set.size = __singleSamplerPoolSizes[:]
+    self.set.layout = vkTexDescriptorSetLayout2
+    self.set.__set = 0
 
-    VkBufferResource_CreateTexture(&self.__in.texture, {
+    VkBufferResource_CreateTexture(&self.texture, {
         width = auto_cast width,
         height = auto_cast height,
         useGCPUMem = false,
@@ -439,8 +439,9 @@ TextureArray_Init :: proc(self:^TextureArray, #any_int width:int, #any_int heigh
         samples = 1,
         len = auto_cast count,
         textureUsage = {.IMAGE_RESOURCE},
-        type = .TEX2D,  
-    }, self.__in.sampler, pixels, true)
+        type = .TEX2D,
+        resourceUsage = .GPU,
+    }, self.sampler, pixels, true)
 }
 
 //? one animate webp Image file or multiple other image files
@@ -455,27 +456,27 @@ TextureArray_InitFileData :: proc(self:^TextureArray, #any_int width:int, #any_i
 }
 
 TextureArray_Deinit :: #force_inline proc(self:^TextureArray) {
-    mem.ICheckInit_Deinit(&self.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.texture)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.texture)
 }
 TextureArray_Width :: #force_inline proc "contextless" (self:^TextureArray) -> int {
-    return auto_cast self.__in.texture.option.width
+    return auto_cast self.texture.option.width
 }
 TextureArray_Height :: #force_inline proc "contextless" (self:^TextureArray) -> int {
-    return auto_cast self.__in.texture.option.height
+    return auto_cast self.texture.option.height
 }
 TextureArray_Count :: #force_inline proc "contextless" (self:^TextureArray) -> int {
-    return auto_cast self.__in.texture.option.len
+    return auto_cast self.texture.option.len
 }
 
 TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, pixels:[]byte, sampler:vk.Sampler = 0) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.sampler = sampler == 0 ? vkLinearSampler : sampler
-    self.__in.set.bindings = __singlePoolBinding[:]
-    self.__in.set.size = __singleSamplerPoolSizes[:]
-    self.__in.set.layout = vkTexDescriptorSetLayout2
-    self.__in.set.__set = 0
-    self.__in.allocPixels = mem.make_non_zeroed_slice([]byte, count * tile_width * tile_height, engineDefAllocator)
+    mem.ICheckInit_Init(&self.checkInit)
+    self.sampler = sampler == 0 ? vkLinearSampler : sampler
+    self.set.bindings = __singlePoolBinding[:]
+    self.set.size = __singleSamplerPoolSizes[:]
+    self.set.layout = vkTexDescriptorSetLayout2
+    self.set.__set = 0
+    self.allocPixels = mem.make_non_zeroed_slice([]byte, count * tile_width * tile_height, engineDefAllocator)
 
     //convert tilemap pixel data format to tile image data format arranged sequentially
     cnt:int
@@ -487,12 +488,12 @@ TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #
             for h in 0..<tile_height {
                 start := cnt * (tile_width * tile_height * bit) + h * tile_width * bit
                 startP := (y * tile_height + h) * (width * bit) + x * tile_width * bit
-                mem.copy_non_overlapping(&self.__in.allocPixels[start], &pixels[startP], tile_width * bit)
+                mem.copy_non_overlapping(&self.allocPixels[start], &pixels[startP], tile_width * bit)
             }
             cnt += 1
         }
     }
-    VkBufferResource_CreateTexture(&self.__in.texture, {
+    VkBufferResource_CreateTexture(&self.texture, {
         width = auto_cast tile_width,
         height = auto_cast tile_height,
         useGCPUMem = false,
@@ -501,7 +502,7 @@ TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #
         len = auto_cast count,
         textureUsage = {.IMAGE_RESOURCE},
         type = .TEX2D,
-    }, self.__in.sampler, self.__in.allocPixels, false, engineDefAllocator)
+    }, self.sampler, self.allocPixels, false, engineDefAllocator)
 }
 TileTextureArray_InitFile :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, files:[]string, sampler:vk.Sampler = 0) {
    //TODO
@@ -510,17 +511,17 @@ TileTextureArray_InitFileData :: proc(self:^TileTextureArray, #any_int tile_widt
    //TODO
 }
 TileTextureArray_Deinit :: #force_inline proc(self:^TileTextureArray) {
-    mem.ICheckInit_Deinit(&self.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.texture)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.texture)
 }
 TileTextureArray_Width :: #force_inline proc "contextless" (self:^TileTextureArray) -> int {
-    return auto_cast self.__in.texture.option.width
+    return auto_cast self.texture.option.width
 }   
 TileTextureArray_Height :: #force_inline proc "contextless" (self:^TileTextureArray) -> int {
-    return auto_cast self.__in.texture.option.height
+    return auto_cast self.texture.option.height
 }
 TileTextureArray_Count :: #force_inline proc "contextless" (self:^TileTextureArray) -> int {
-    return auto_cast self.__in.texture.option.len
+    return auto_cast self.texture.option.len
 }
 
 
@@ -540,12 +541,12 @@ ImagePixelPerfectPoint :: proc "contextless" (img:^$ANY_IMAGE, p:linalg.PointF, 
 
     #partial switch pivot {
         case .Center:
-            if img.src.__in.texture.option.width % 2 != 0 do p.x += 0.5
-            if img.src.__in.texture.option.height % 2 != 0 do p.y -= 0.5
+            if img.src.texture.option.width % 2 != 0 do p.x += 0.5
+            if img.src.texture.option.height % 2 != 0 do p.y -= 0.5
         case .Left, .Right:
-            if img.src.__in.texture.option.height % 2 != 0 do p.y -= 0.5
+            if img.src.texture.option.height % 2 != 0 do p.y -= 0.5
         case .Top, .Bottom:
-            if img.src.__in.texture.option.width % 2 != 0 do p.x += 0.5
+            if img.src.texture.option.width % 2 != 0 do p.x += 0.5
     }
     return p
 }

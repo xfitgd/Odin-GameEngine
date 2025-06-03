@@ -21,37 +21,37 @@ import vk "vendor:vulkan"
 
 ResourceUsage :: enum {GPU,CPU}
 
-__IObjectIn :: struct {
+@private __IObjectIn :: struct {
+    using _: __MatrixIn,
     set:VkDescriptorSet,
     camera: ^Camera,
     projection: ^Projection,
     colorTransform: ^ColorTransform,
-    __in: __MatrixIn,
     actualType: typeid,
     vtable: ^IObjectVTable,
 }
 
 IObjectVTable :: struct {
+    using _: __IObjectVTable,
     Draw: proc (self:^IObject, cmd:vk.CommandBuffer),
     Deinit: proc (self:^IObject),
     Update: proc (self:^IObject),
-    __in: __IObjectVTable,
 }
 
-__IObjectVTable :: struct {
+@private __IObjectVTable :: struct {
     __GetUniformResources: proc (self:^IObject) -> []VkUnionResource,
 }
 
 IObject :: struct {
-    __in: __IObjectIn,
+    using _: __IObjectIn,
 }
 
 
 ColorTransform :: struct {
-    __in: __ColorMatrixIn,
+    using _: __ColorMatrixIn,
 }
 
-__ColorMatrixIn :: struct {
+@private __ColorMatrixIn :: struct {
     mat: linalg.Matrix,
     matUniform:VkBufferResource,
     checkInit: mem.ICheckInit,
@@ -67,27 +67,28 @@ __MatrixIn :: struct {
 
 
 ColorTransform_InitMatrixRaw :: proc(self:^ColorTransform, mat:linalg.Matrix = {1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1}) {
-    self.__in.mat = mat
+    self.mat = mat
     __ColorTransform_Init(self)
 }
 
 @private __ColorTransform_Init :: #force_inline proc(self:^ColorTransform) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    VkBufferResource_CreateBuffer(&self.__in.matUniform, {
+    mem.ICheckInit_Init(&self.checkInit)
+    VkBufferResource_CreateBuffer(&self.matUniform, {
         len = size_of(linalg.Matrix),
         type = .UNIFORM,
-    }, mem.ptr_to_bytes(&self.__in.mat), true)
+        resourceUsage = .CPU,
+    }, mem.ptr_to_bytes(&self.mat), true)
 }
 
 ColorTransform_Deinit :: proc(self:^ColorTransform) {
-    mem.ICheckInit_Deinit(&self.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 ColorTransform_UpdateMatrixRaw :: proc(self:^ColorTransform, _mat:linalg.Matrix) {
-    mem.ICheckInit_Check(&self.__in.checkInit)
-    self.__in.mat = _mat
-    VkBufferResource_CopyUpdate(&self.__in.matUniform, &self.__in.mat)
+    mem.ICheckInit_Check(&self.checkInit)
+    self.mat = _mat
+    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
 
 
@@ -105,31 +106,32 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
     camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0})
     where actualType != IObject && intrinsics.type_is_subtype_of(actualType, IObject) {
 
-    mem.ICheckInit_Init(&self.__in.__in.checkInit)
-    self.__in.camera = camera
-    self.__in.projection = projection
-    self.__in.colorTransform = colorTransform == nil ? &__defColorTransform : colorTransform
+    mem.ICheckInit_Init(&self.checkInit)
+    self.camera = camera
+    self.projection = projection
+    self.colorTransform = colorTransform == nil ? &__defColorTransform : colorTransform
     
-    self.__in.__in.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
+    self.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
 
-    self.__in.set.__set = 0
+    self.set.__set = 0
 
-    VkBufferResource_CreateBuffer(&self.__in.__in.matUniform, {
+    VkBufferResource_CreateBuffer(&self.matUniform, {
         len = size_of(linalg.Matrix),
         type = .UNIFORM,
-    }, mem.ptr_to_bytes(&self.__in.__in.mat), true)
+        resourceUsage = .CPU,
+    }, mem.ptr_to_bytes(&self.mat), true)
 
     resources := __GetUniformResources(self)
     defer delete(resources, context.temp_allocator)
     __IObject_UpdateUniform(self, resources)
 
-    self.__in.actualType = actualType
+    self.actualType = actualType
 }
 
 //!alloc result array in temp_allocator
 @private __GetUniformResources :: proc(self:^IObject) -> []VkUnionResource {
-    if self.__in.vtable != nil && self.__in.vtable.__in.__GetUniformResources != nil {
-        return self.__in.vtable.__in.__GetUniformResources(self)
+    if self.vtable != nil && self.vtable.__GetUniformResources != nil {
+        return self.vtable.__GetUniformResources(self)
     } else {
         trace.panic_log("__GetUniformResources is not implemented")
     }
@@ -137,105 +139,105 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
 
 @private __GetUniformResources_AnimateImage :: #force_inline proc(self:^IObject) -> []VkUnionResource {
     res := mem.make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
-    res[0] = &self.__in.__in.matUniform
-    res[1] = &self.__in.camera.__in.matUniform
-    res[2] = &self.__in.projection.__in.matUniform
-    res[3] = &self.__in.colorTransform.__in.matUniform
+    res[0] = &self.matUniform
+    res[1] = &self.camera.matUniform
+    res[2] = &self.projection.matUniform
+    res[3] = &self.colorTransform.matUniform
 
     animateImage : ^AnimateImage= auto_cast self
-    res[4] = &animateImage.__in2.frameUniform
+    res[4] = &animateImage.frameUniform
     return res[:]
 }
 
 @private __GetUniformResources_TileImage :: #force_inline proc(self:^IObject) -> []VkUnionResource {
     res := mem.make_non_zeroed([]VkUnionResource, 5, context.temp_allocator)
-    res[0] = &self.__in.__in.matUniform
-    res[1] = &self.__in.camera.__in.matUniform
-    res[2] = &self.__in.projection.__in.matUniform
-    res[3] = &self.__in.colorTransform.__in.matUniform
+    res[0] = &self.matUniform
+    res[1] = &self.camera.matUniform
+    res[2] = &self.projection.matUniform
+    res[3] = &self.colorTransform.matUniform
 
     tileImage : ^TileImage = auto_cast self
-    res[4] = &tileImage.__in2.tileUniform
+    res[4] = &tileImage.tileUniform
     return res[:]
 }
 
 @private __GetUniformResources_Default :: #force_inline proc(self:^IObject) -> []VkUnionResource {
     res := mem.make_non_zeroed([]VkUnionResource, 4, context.temp_allocator)
-    res[0] = &self.__in.__in.matUniform
-    res[1] = &self.__in.camera.__in.matUniform
-    res[2] = &self.__in.projection.__in.matUniform
-    res[3] = &self.__in.colorTransform.__in.matUniform
+    res[0] = &self.matUniform
+    res[1] = &self.camera.matUniform
+    res[2] = &self.projection.matUniform
+    res[3] = &self.colorTransform.matUniform
 
     return res[:]
 }
 
 @private __IObject_UpdateUniform :: #force_inline proc(self:^IObject, resources:[]VkUnionResource) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    mem.copy_non_overlapping(&self.__in.set.__resources[0], &resources[0], len(resources) * size_of(VkUnionResource))
-    VkUpdateDescriptorSets(mem.slice_ptr(&self.__in.set, 1))
+    mem.ICheckInit_Check(&self.checkInit)
+    mem.copy_non_overlapping(&self.set.__resources[0], &resources[0], len(resources) * size_of(VkUnionResource))
+    VkUpdateDescriptorSets(mem.slice_ptr(&self.set, 1))
 }
 
 IObject_UpdateTransform :: proc(self:^IObject, pos:linalg.Point3DF, rotation:f32 = 0.0, scale:linalg.PointF = {1.0,1.0}, pivot:linalg.PointF = {0.0,0.0}) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in.__in.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
-    VkBufferResource_CopyUpdate(&self.__in.__in.matUniform, &self.__in.__in.mat)
+    mem.ICheckInit_Check(&self.checkInit)
+    self.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
+    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
 IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in.__in.mat = _mat
-    VkBufferResource_CopyUpdate(&self.__in.__in.matUniform, &self.__in.__in.mat)
+    mem.ICheckInit_Check(&self.checkInit)
+    self.mat = _mat
+    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
 IObject_UpdateColorTransform :: proc(self:^IObject, colorTransform:^ColorTransform) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in.colorTransform = colorTransform
+    mem.ICheckInit_Check(&self.checkInit)
+    self.colorTransform = colorTransform
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_UpdateCamera :: proc(self:^IObject, camera:^Camera) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in.camera = camera
+    mem.ICheckInit_Check(&self.checkInit)
+    self.camera = camera
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_UpdateProjection :: proc(self:^IObject, projection:^Projection) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in.projection = projection
+    mem.ICheckInit_Check(&self.checkInit)
+    self.projection = projection
     __IObject_UpdateUniform(self, __GetUniformResources(self))
 }
 IObject_GetColorTransform :: #force_inline proc "contextless" (self:^IObject) -> ^ColorTransform {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    return self.__in.colorTransform
+    mem.ICheckInit_Check(&self.checkInit)
+    return self.colorTransform
 }
 IObject_GetCamera :: #force_inline proc "contextless" (self:^IObject) -> ^Camera {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    return self.__in.camera
+    mem.ICheckInit_Check(&self.checkInit)
+    return self.camera
 }
 IObject_GetProjection :: #force_inline proc "contextless" (self:^IObject) -> ^Projection {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    return self.__in.projection
+    mem.ICheckInit_Check(&self.checkInit)
+    return self.projection
 }
 
 IObject_GetActualType :: #force_inline proc "contextless" (self:^IObject) -> typeid {
-    return self.__in.actualType
+    return self.actualType
 }
 
 IObject_Draw :: proc (self:^IObject, cmd:vk.CommandBuffer) {
-    if self.__in.vtable != nil && self.__in.vtable.Draw != nil {
-        self.__in.vtable.Draw(self, cmd)
+    if self.vtable != nil && self.vtable.Draw != nil {
+        self.vtable.Draw(self, cmd)
     } else {
         trace.panic_log("IObjectType_Draw: unknown object type")
     }
 }
 
 IObject_Deinit :: proc(self:^IObject) {
-    if self.__in.vtable != nil && self.__in.vtable.Deinit != nil {
-        self.__in.vtable.Deinit(self)
+    if self.vtable != nil && self.vtable.Deinit != nil {
+        self.vtable.Deinit(self)
     } else {
         trace.panic_log("IObjectType_Deinit: unknown object type")
     }
 }
 
 IObject_Update :: proc(self:^IObject) {
-    if self.__in.vtable != nil && self.__in.vtable.Update != nil {
-        self.__in.vtable.Update(self)
+    if self.vtable != nil && self.vtable.Update != nil {
+        self.vtable.Update(self)
     }
     //Update Not Required Default
 }
@@ -351,7 +353,7 @@ FreeObject :: #force_inline proc(obj:^$T) where intrinsics.type_is_subtype_of(T,
     aObj := FREE_OBJ{
         typeSize = size_of(T),
         len = 1,
-        deinit = obj.__in.vtable.Deinit,
+        deinit = obj.vtable.Deinit,
         obj = rawptr(obj),
     }
     sync.mutex_lock(&gFreeObjectMtx)
@@ -363,7 +365,7 @@ FreeObjectSlice :: #force_inline proc(arr:$T/[]$E) where intrinsics.type_is_subt
     aObj := FREE_OBJ{
         typeSize = size_of(E),
         len = len(arr),
-        deinit = len(arr) > 0 ? arr[0].__in.vtable.Deinit : nil,
+        deinit = len(arr) > 0 ? arr[0].vtable.Deinit : nil,
         obj = rawptr(raw_data(arr)),
     }
     sync.mutex_lock(&gFreeObjectMtx)
@@ -375,7 +377,7 @@ FreeObjectDynamic :: #force_inline proc(arr:$T/[dynamic]$E) where intrinsics.typ
     aObj := FREE_OBJ{
         typeSize = size_of(E),
         len = cap(arr),
-        deinit = len(arr) > 0 ? arr[0].__in.vtable.Deinit : nil,
+        deinit = len(arr) > 0 ? arr[0].vtable.Deinit : nil,
         obj = rawptr(raw_data(arr)),
     }
     sync.mutex_lock(&gFreeObjectMtx)

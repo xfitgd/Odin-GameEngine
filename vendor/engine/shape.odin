@@ -10,23 +10,23 @@ import "base:intrinsics"
 import "base:runtime"
 import vk "vendor:vulkan"
 
-__ShapeSrcIn :: struct {
+@private __ShapeSrcIn :: struct {
     //?vertexBuf, indexBuf에 checkInit: ICheckInit 있으므로 따로 필요없음
     vertexBuf:__VertexBuf(geometry.ShapeVertex2D),
     indexBuf:__IndexBuf,
 }       
 
 ShapeSrc :: struct {
+    using _:__ShapeSrcIn,
     rect:linalg.RectF,
-    __in:__ShapeSrcIn,
 }
 
 Shape :: struct {
     using object:IObject,
-    __in2:__ShapeIn,
+    using _:__ShapeIn,
 }
 
-__ShapeIn :: struct {
+@private __ShapeIn :: struct {
     src: ^ShapeSrc,
 }
 
@@ -39,33 +39,33 @@ __ShapeIn :: struct {
 Shape_Init :: proc(self:^Shape, $actualType:typeid, src:^ShapeSrc, pos:linalg.Point3DF,
 camera:^Camera, projection:^Projection,  rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0}, vtable:^IObjectVTable = nil)
  where intrinsics.type_is_subtype_of(actualType, Shape) {
-    self.__in2.src = src
+    self2.src = src
 
-    self.__in.set.bindings = __transformUniformPoolBinding[:]
-    self.__in.set.size = __transformUniformPoolSizes[:]
-    self.__in.set.layout = vkShapeDescriptorSetLayout
+    self.set.bindings = __transformUniformPoolBinding[:]
+    self.set.size = __transformUniformPoolSizes[:]
+    self.set.layout = vkShapeDescriptorSetLayout
 
-    self.__in.vtable = vtable == nil ? &ShapeVTable : vtable
-    if self.__in.vtable.Draw == nil do self.__in.vtable.Draw = auto_cast _Super_Shape_Draw
-    if self.__in.vtable.Deinit == nil do self.__in.vtable.Deinit = auto_cast _Super_Shape_Deinit
+    self.vtable = vtable == nil ? &ShapeVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_Shape_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_Shape_Deinit
 
-    self.__in.vtable.__in.__GetUniformResources = auto_cast __GetUniformResources_Default
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_Default
 
     IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform, pivot)
 }
 
 _Super_Shape_Deinit :: proc(self:^Shape) {
-    mem.ICheckInit_Deinit(&self.__in.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 Shape_UpdateSrc :: #force_inline proc "contextless" (self:^Shape, src:^ShapeSrc) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    self.__in2.src = src
+    mem.ICheckInit_Check(&self.checkInit)
+    self.src = src
 }
 Shape_GetSrc :: #force_inline proc "contextless" (self:^Shape) -> ^ShapeSrc {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
-    return self.__in2.src
+    mem.ICheckInit_Check(&self.checkInit)
+    return self.src
 }
 Shape_GetCamera :: #force_inline proc "contextless" (self:^Shape) -> ^Camera {
     return IObject_GetCamera(self)
@@ -93,24 +93,24 @@ Shape_UpdateProjection :: #force_inline proc(self:^Shape, projection:^Projection
 }
 
 _Super_Shape_Draw :: proc (self:^Shape, cmd:vk.CommandBuffer) {
-    mem.ICheckInit_Check(&self.__in.__in.checkInit)
+    mem.ICheckInit_Check(&self.checkInit)
 
     vk.CmdBindPipeline(cmd, .GRAPHICS, vkShapePipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkShapePipelineLayout, 0, 1, 
-        &([]vk.DescriptorSet{self.__in.set.__set})[0], 0, nil)
+        &([]vk.DescriptorSet{self.set.__set})[0], 0, nil)
 
 
     offsets: vk.DeviceSize = 0
-    vk.CmdBindVertexBuffers(cmd, 0, 1, &self.__in2.src.__in.vertexBuf.buf.__resource, &offsets)
-    vk.CmdBindIndexBuffer(cmd, self.__in2.src.__in.indexBuf.buf.__resource, 0, .UINT32)
+    vk.CmdBindVertexBuffers(cmd, 0, 1, &self.src.vertexBuf.buf.__resource, &offsets)
+    vk.CmdBindIndexBuffer(cmd, self.src.indexBuf.buf.__resource, 0, .UINT32)
 
-    vk.CmdDrawIndexed(cmd, auto_cast (self.__in2.src.__in.indexBuf.buf.option.len / size_of(u32)), 1, 0, 0, 0)
+    vk.CmdDrawIndexed(cmd, auto_cast (self.src.indexBuf.buf.option.len / size_of(u32)), 1, 0, 0, 0)
 }
 
 ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUsage = .GPU, colorFlag:ResourceUsage = .CPU) {
     rawC := geometry.RawShape_Clone(raw, engineDefAllocator)
-    __VertexBuf_Init(&self.__in.vertexBuf, rawC.vertices, flag)
-    __IndexBuf_Init(&self.__in.indexBuf, rawC.indices, flag)
+    __VertexBuf_Init(&self.vertexBuf, rawC.vertices, flag)
+    __IndexBuf_Init(&self.indexBuf, rawC.indices, flag)
     self.rect = rawC.rect
 }
 
@@ -119,8 +119,8 @@ ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUs
     raw, err = geometry.Shapes_ComputePolygon(shapes, engineDefAllocator)
     if err != .None do return
 
-    __VertexBuf_Init(&self.__in.vertexBuf, raw.vertices, flag)
-    __IndexBuf_Init(&self.__in.indexBuf, raw.indices, flag)
+    __VertexBuf_Init(&self.vertexBuf, raw.vertices, flag)
+    __IndexBuf_Init(&self.indexBuf, raw.indices, flag)
 
     self.rect = raw.rect
     return
@@ -128,8 +128,8 @@ ShapeSrc_InitRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape, flag:ResourceUs
 
 ShapeSrc_UpdateRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape) {
     rawC := geometry.RawShape_Clone(raw, engineDefAllocator)
-    __VertexBuf_Update(&self.__in.vertexBuf, rawC.vertices)
-    __IndexBuf_Update(&self.__in.indexBuf, rawC.indices)
+    __VertexBuf_Update(&self.vertexBuf, rawC.vertices)
+    __IndexBuf_Update(&self.indexBuf, rawC.indices)
 }
 
 @require_results ShapeSrc_Update :: proc(self:^ShapeSrc, shapes:^geometry.Shapes) -> (err:geometry.ShapesError = .None) {
@@ -137,14 +137,14 @@ ShapeSrc_UpdateRaw :: proc(self:^ShapeSrc, raw:^geometry.RawShape) {
     raw, err = geometry.Shapes_ComputePolygon(shapes, engineDefAllocator)
     if err != .None do return
 
-    __VertexBuf_Update(&self.__in.vertexBuf, raw.vertices)
-    __IndexBuf_Update(&self.__in.indexBuf, raw.indices)
+    __VertexBuf_Update(&self.vertexBuf, raw.vertices)
+    __IndexBuf_Update(&self.indexBuf, raw.indices)
     return
 }
 
 ShapeSrc_Deinit :: proc(self:^ShapeSrc) {
-    __VertexBuf_Deinit(&self.__in.vertexBuf)
-    __IndexBuf_Deinit(&self.__in.indexBuf)
+    __VertexBuf_Deinit(&self.vertexBuf)
+    __IndexBuf_Deinit(&self.indexBuf)
 }
 
 

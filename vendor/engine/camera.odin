@@ -10,32 +10,33 @@ import "base:runtime"
 import vk "vendor:vulkan"
 
 Camera :: struct {
-    __in: __MatrixIn,
+    using _: __MatrixIn,
 }
 
 Camera_InitMatrixRaw :: proc (self:^Camera, mat:linalg.Matrix) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    self.__in.mat = mat
+    mem.ICheckInit_Init(&self.checkInit)
+    self.mat = mat
     __Camera_Init(self)
 }
 
 @private __Camera_Init :: #force_inline proc(self:^Camera) {
-    mem.ICheckInit_Init(&self.__in.checkInit)
-    VkBufferResource_CreateBuffer(&self.__in.matUniform, {
+    mem.ICheckInit_Init(&self.checkInit)
+    VkBufferResource_CreateBuffer(&self.matUniform, {
         len = size_of(linalg.Matrix),
         type = .UNIFORM,
-    }, mem.ptr_to_bytes(&self.__in.mat), true)
+        resourceUsage = .CPU,
+    }, mem.ptr_to_bytes(&self.mat), true)
 }
 
 Camera_Deinit :: proc(self:^Camera) {
-    mem.ICheckInit_Deinit(&self.__in.checkInit)
-    VkBufferResource_Deinit(&self.__in.matUniform)
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
 }
 
 Camera_UpdateMatrixRaw :: proc(self:^Camera, _mat:linalg.Matrix) {
-    mem.ICheckInit_Check(&self.__in.checkInit)
-    self.__in.mat = _mat
-    VkBufferResource_CopyUpdate(&self.__in.matUniform, &self.__in.mat)
+    mem.ICheckInit_Check(&self.checkInit)
+    self.mat = _mat
+    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
 
 @private __Camera_Update :: #force_inline proc(self:^Camera, eyeVec:linalg.Point3DF, focusVec:linalg.Point3DF, upVec:linalg.Point3DF = {0,0,1}) {
@@ -45,7 +46,7 @@ Camera_UpdateMatrixRaw :: proc(self:^Camera, _mat:linalg.Matrix) {
 
 	fe := linalg.dot(f, eyeVec)
 
-    self.__in.mat = {
+    self.mat = {
 		+s.x, +s.y, +s.z, -linalg.dot(s, eyeVec),
 		+u.x, +u.y, +u.z, -linalg.dot(u, eyeVec),
 		+f.x, +f.y, +f.z, -fe,
@@ -60,5 +61,5 @@ Camera_Init :: proc (self:^Camera, eyeVec:linalg.Point3DF = {0,0,-1}, focusVec:l
 
 Camera_Update :: proc(self:^Camera, eyeVec:linalg.Point3DF = {0,0,-1}, focusVec:linalg.Point3DF = {0,0,0}, upVec:linalg.Point3DF = {0,0,1}) {
     __Camera_Update(self, eyeVec, focusVec, upVec)
-    Camera_UpdateMatrixRaw(self, self.__in.mat)
+    Camera_UpdateMatrixRaw(self, self.mat)
 }

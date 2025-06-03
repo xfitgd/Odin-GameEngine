@@ -339,6 +339,12 @@ GetMaxFrame :: #force_inline proc "contextless" () -> f64 {
 	return intrinsics.atomic_load_explicit(&maxFrame,.Relaxed)
 }
 
+
+GetFPS :: #force_inline proc "contextless" () -> f64 {
+	if deltaTime == 0 do return 0
+	return 1.0 / dt()
+}
+
 SetMaxFrame :: #force_inline proc "contextless" (_maxframe: f64) {
 	intrinsics.atomic_store_explicit(&maxFrame, _maxframe, .Relaxed)
 }
