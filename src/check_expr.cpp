@@ -263,6 +263,9 @@ gb_internal void check_did_you_mean_scope(String const &name, Scope *scope, char
 
 gb_internal Entity *entity_from_expr(Ast *expr) {
 	expr = unparen_expr(expr);
+	if (expr == nullptr) {
+		return nullptr;
+	}
 	switch (expr->kind) {
 	case Ast_Ident:
 		return expr->Ident.entity;
@@ -3884,6 +3887,59 @@ matrix_error:
 	
 }
 
+gb_internal void check_binary_expr_dependency(CheckerContext *c, Token op, Type *bt, bool REQUIRE) {
+	if (op.kind == Token_Mod    || op.kind == Token_ModEq ||
+	    op.kind == Token_ModMod || op.kind == Token_ModModEq) {
+		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
+		case Basic_u128: add_package_dependency(c, "runtime", "umodti3", REQUIRE); break;
+		case Basic_i128: add_package_dependency(c, "runtime", "modti3",  REQUIRE); break;
+		}
+	} else if (op.kind == Token_Quo || op.kind == Token_QuoEq) {
+		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
+		case Basic_complex32:     add_package_dependency(c, "runtime", "quo_complex32");     break;
+		case Basic_complex64:     add_package_dependency(c, "runtime", "quo_complex64");     break;
+		case Basic_complex128:    add_package_dependency(c, "runtime", "quo_complex128");    break;
+		case Basic_quaternion64:  add_package_dependency(c, "runtime", "quo_quaternion64");  break;
+		case Basic_quaternion128: add_package_dependency(c, "runtime", "quo_quaternion128"); break;
+		case Basic_quaternion256: add_package_dependency(c, "runtime", "quo_quaternion256"); break;
+
+		case Basic_u128: add_package_dependency(c, "runtime", "udivti3", REQUIRE); break;
+		case Basic_i128: add_package_dependency(c, "runtime", "divti3",  REQUIRE); break;
+		}
+	} else if (op.kind == Token_Mul || op.kind == Token_MulEq) {
+		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
+		case Basic_quaternion64:  add_package_dependency(c, "runtime", "mul_quaternion64");  break;
+		case Basic_quaternion128: add_package_dependency(c, "runtime", "mul_quaternion128"); break;
+		case Basic_quaternion256: add_package_dependency(c, "runtime", "mul_quaternion256"); break;
+
+
+		case Basic_u128:
+		case Basic_i128:
+			if (is_arch_wasm()) {
+				add_package_dependency(c, "runtime", "__multi3", REQUIRE);
+			}
+			break;
+		}
+	} else if (op.kind == Token_Shl || op.kind == Token_ShlEq) {
+		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
+		case Basic_u128:
+		case Basic_i128:
+			if (is_arch_wasm()) {
+				add_package_dependency(c, "runtime", "__ashlti3", REQUIRE);
+			}
+			break;
+		}
+	} else if (op.kind == Token_Shr || op.kind == Token_ShrEq) {
+		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
+		case Basic_u128:
+		case Basic_i128:
+			if (is_arch_wasm()) {
+				add_package_dependency(c, "runtime", "__lshrti3", REQUIRE);
+			}
+			break;
+		}
+	}
+}
 
 gb_internal void check_binary_expr(CheckerContext *c, Operand *x, Ast *node, Type *type_hint, bool use_lhs_as_type_hint=false) {
 	GB_ASSERT(node->kind == Ast_BinaryExpr);
@@ -4081,58 +4137,10 @@ gb_internal void check_binary_expr(CheckerContext *c, Operand *x, Ast *node, Typ
 	}
 
 	bool REQUIRE = true;
-	Type *bt = base_type(x->type);
-	if (op.kind == Token_Mod    || op.kind == Token_ModEq ||
-	    op.kind == Token_ModMod || op.kind == Token_ModModEq) {
-		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
-		case Basic_u128: add_package_dependency(c, "runtime", "umodti3", REQUIRE); break;
-		case Basic_i128: add_package_dependency(c, "runtime", "modti3",  REQUIRE); break;
-		}
-	} else if (op.kind == Token_Quo || op.kind == Token_QuoEq) {
-		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
-		case Basic_complex32:     add_package_dependency(c, "runtime", "quo_complex32");     break;
-		case Basic_complex64:     add_package_dependency(c, "runtime", "quo_complex64");     break;
-		case Basic_complex128:    add_package_dependency(c, "runtime", "quo_complex128");    break;
-		case Basic_quaternion64:  add_package_dependency(c, "runtime", "quo_quaternion64");  break;
-		case Basic_quaternion128: add_package_dependency(c, "runtime", "quo_quaternion128"); break;
-		case Basic_quaternion256: add_package_dependency(c, "runtime", "quo_quaternion256"); break;
-
-		case Basic_u128: add_package_dependency(c, "runtime", "udivti3", REQUIRE); break;
-		case Basic_i128: add_package_dependency(c, "runtime", "divti3",  REQUIRE); break;
-		}
-	} else if (op.kind == Token_Mul || op.kind == Token_MulEq) {
-		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
-		case Basic_quaternion64:  add_package_dependency(c, "runtime", "mul_quaternion64");  break;
-		case Basic_quaternion128: add_package_dependency(c, "runtime", "mul_quaternion128"); break;
-		case Basic_quaternion256: add_package_dependency(c, "runtime", "mul_quaternion256"); break;
-
-
-		case Basic_u128:
-		case Basic_i128:
-			if (is_arch_wasm()) {
-				add_package_dependency(c, "runtime", "__multi3", REQUIRE);
-			}
-			break;
-		}
-	} else if (op.kind == Token_Shl || op.kind == Token_ShlEq) {
-		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
-		case Basic_u128:
-		case Basic_i128:
-			if (is_arch_wasm()) {
-				add_package_dependency(c, "runtime", "__ashlti3", REQUIRE);
-			}
-			break;
-		}
-	} else if (op.kind == Token_Shr || op.kind == Token_ShrEq) {
-		if (bt->kind == Type_Basic) switch (bt->Basic.kind) {
-		case Basic_u128:
-		case Basic_i128:
-			if (is_arch_wasm()) {
-				add_package_dependency(c, "runtime", "__lshrti3", REQUIRE);
-			}
-			break;
-		}
-	}
+	Type *btx = base_type(x->type);
+	Type *bty = base_type(y->type);
+	check_binary_expr_dependency(c, op, btx, REQUIRE);
+	check_binary_expr_dependency(c, op, bty, REQUIRE);
 
 	if (token_is_shift(op.kind)) {
 		check_shift(c, x, y, node, type_hint);
@@ -5373,16 +5381,6 @@ gb_internal Entity *check_selector(CheckerContext *c, Operand *operand, Ast *nod
 				return nullptr;
 			}
 
-			check_entity_decl(c, entity, nullptr, nullptr);
-			if (entity->kind == Entity_ProcGroup) {
-				operand->mode = Addressing_ProcGroup;
-				operand->proc_group = entity;
-
-				add_type_and_value(c, operand->expr, operand->mode, operand->type, operand->value);
-				return entity;
-			}
-			GB_ASSERT_MSG(entity->type != nullptr, "%.*s (%.*s)", LIT(entity->token.string), LIT(entity_strings[entity->kind]));
-
 			if (!is_entity_exported(entity, allow_builtin)) {
 				gbString sel_str = expr_to_string(selector);
 				error(node, "'%s' is not exported by '%.*s'", sel_str, LIT(import_name));
@@ -5393,36 +5391,15 @@ gb_internal Entity *check_selector(CheckerContext *c, Operand *operand, Ast *nod
 				// return nullptr;
 			}
 
+			check_entity_decl(c, entity, nullptr, nullptr);
 			if (entity->kind == Entity_ProcGroup) {
-				Array<Entity *> procs = entity->ProcGroup.entities;
-				bool skip = false;
-				for (Entity *p : procs) {
-					Type *t = base_type(p->type);
-					if (t == t_invalid) {
-						continue;
-					}
+				operand->mode = Addressing_ProcGroup;
+				operand->proc_group = entity;
 
-					Operand x = {};
-					x.mode = Addressing_Value;
-					x.type = t;
-					if (type_hint != nullptr) {
-						if (check_is_assignable_to(c, &x, type_hint)) {
-							entity = p;
-							skip = true;
-							break;
-						}
-					}
-				}
-
-				if (!skip) {
-					GB_ASSERT(entity != nullptr);
-					operand->mode       = Addressing_ProcGroup;
-					operand->type       = t_invalid;
-					operand->expr       = node;
-					operand->proc_group = entity;
-					return entity;
-				}
+				add_type_and_value(c, operand->expr, operand->mode, operand->type, operand->value);
+				return entity;
 			}
+			GB_ASSERT_MSG(entity->type != nullptr, "%.*s (%.*s)", LIT(entity->token.string), LIT(entity_strings[entity->kind]));
 		}
 	}
 
@@ -7960,7 +7937,27 @@ gb_internal ExprKind check_call_expr(CheckerContext *c, Operand *operand, Ast *c
 			default:
 				{
 					gbString str = type_to_string(t);
-					error(call, "Too many arguments in conversion to '%s'", str);
+					if (t->kind == Type_Basic) {
+						ERROR_BLOCK();
+						switch (t->Basic.kind) {
+						case Basic_complex32:
+						case Basic_complex64:
+						case Basic_complex128:
+							error(call, "Too many arguments in conversion to '%s'", str);
+							error_line("\tSuggestion: %s(1+2i) or construct with 'complex'\n", str);
+							break;
+						case Basic_quaternion64:
+						case Basic_quaternion128:
+						case Basic_quaternion256:
+							error(call, "Too many arguments in conversion to '%s'", str);
+							error_line("\tSuggestion: %s(1+2i+3j+4k) or construct with 'quaternion'\n", str);
+							break;
+						default:
+							error(call, "Too many arguments in conversion to '%s'", str);
+						}
+					} else {
+						error(call, "Too many arguments in conversion to '%s'", str);
+					}
 					gb_string_free(str);
 				} break;
 			case 1: {

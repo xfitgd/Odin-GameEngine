@@ -2098,7 +2098,7 @@ gb_internal void lb_create_global_procedures_and_types(lbGenerator *gen, Checker
 			break;
 		case Entity_Constant:
 			if (build_context.ODIN_DEBUG) {
-				add_debug_info_for_global_constant_from_entity(gen, e);
+				lb_add_debug_info_for_global_constant_from_entity(gen, e);
 			}
 			break;
 		}
@@ -2504,7 +2504,6 @@ gb_internal String lb_filepath_obj_for_module(lbModule *m) {
 
 	gbString path = gb_string_make_length(heap_allocator(), basename.text, basename.len);
 	path = gb_string_appendc(path, "/");
-	path = gb_string_append_length(path, name.text, name.len);
 
 	if (USE_SEPARATE_MODULES) {
 		GB_ASSERT(m->module_name != nullptr);
@@ -2516,6 +2515,8 @@ gb_internal String lb_filepath_obj_for_module(lbModule *m) {
 		}
 
 		path = gb_string_append_length(path, s.text, s.len);
+	} else {
+		path = gb_string_append_length(path, name.text, name.len);
 	}
 
 	if (use_temporary_directory) {
@@ -2526,38 +2527,15 @@ gb_internal String lb_filepath_obj_for_module(lbModule *m) {
 	String ext = {};
 
 	if (build_context.build_mode == BuildMode_Assembly) {
-		ext = STR_LIT(".S");
+		ext = STR_LIT("S");
+	} else if (build_context.build_mode == BuildMode_Object) {
+		// Allow a user override for the object extension.
+		ext = build_context.build_paths[BuildPath_Output].ext;
 	} else {
-		if (is_arch_wasm()) {
-			ext = STR_LIT(".wasm.o");
-		} else {
-			switch (build_context.metrics.os) {
-			case TargetOs_windows:
-				ext = STR_LIT(".obj");
-				break;
-			default:
-			case TargetOs_darwin:
-			case TargetOs_linux:
-			case TargetOs_essence:
-				ext = STR_LIT(".o");
-				break;
-
-			case TargetOs_freestanding:
-				switch (build_context.metrics.abi) {
-				default:
-				case TargetABI_Default:
-				case TargetABI_SysV:
-					ext = STR_LIT(".o");
-					break;
-				case TargetABI_Win64:
-					ext = STR_LIT(".obj");
-					break;
-				}
-				break;
-			}
-		}
+		ext = infer_object_extension_from_build_context();
 	}
 
+	path = gb_string_append_length(path, ".", 1);
 	path = gb_string_append_length(path, ext.text, ext.len);
 
 	return make_string(cast(u8 *)path, gb_string_length(path));
@@ -3300,6 +3278,28 @@ gb_internal bool lb_generate_code(lbGenerator *gen) {
 		}
 	}
 
+	if (build_context.ODIN_DEBUG) {
+		// Custom `.raddbg` section for its debugger
+		if (build_context.metrics.os == TargetOs_windows) {
+			lbModule *m = default_module;
+			LLVMModuleRef mod = m->mod;
+			LLVMContextRef ctx = m->ctx;
+
+			{
+				LLVMTypeRef type = LLVMArrayType(LLVMInt8TypeInContext(ctx), 1);
+				LLVMValueRef global = LLVMAddGlobal(mod, type, "raddbg_is_attached_byte_marker");
+				LLVMSetInitializer(global, LLVMConstNull(type));
+				LLVMSetSection(global, ".raddbg");
+			}
+
+			if (gen->info->entry_point) {
+				String mangled_name = lb_get_entity_name(m, gen->info->entry_point);
+				char const *str = alloc_cstring(temporary_allocator(), mangled_name);
+				lb_add_raddbg_string(m, "entry_point: \"", str, "\"");
+			}
+		}
+	}
+
 	TIME_SECTION("LLVM Runtime Objective-C Names Creation");
 	gen->objc_names = lb_create_objc_names(default_module);
 
@@ -3313,7 +3313,7 @@ gb_internal bool lb_generate_code(lbGenerator *gen) {
 	if (build_context.ODIN_DEBUG) {
 		for (auto const &entry : builtin_pkg->scope->elements) {
 			Entity *e = entry.value;
-			add_debug_info_for_global_constant_from_entity(gen, e);
+			lb_add_debug_info_for_global_constant_from_entity(gen, e);
 		}
 	}
 
@@ -3343,6 +3343,72 @@ gb_internal bool lb_generate_code(lbGenerator *gen) {
 	if (build_context.ODIN_DEBUG) {
 		TIME_SECTION("LLVM Debug Info Complete Types and Finalize");
 		lb_debug_info_complete_types_and_finalize(gen);
+
+		// Custom `.raddbg` section for its debugger
+		if (build_context.metrics.os == TargetOs_windows) {
+			lbModule *m = default_module;
+			LLVMModuleRef mod = m->mod;
+			LLVMContextRef ctx = m->ctx;
+
+			lb_add_raddbg_string(m, "type_view: {type: \"[]?\", expr: \"array(data, len)\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"string\", expr: \"array(data, len)\"}");
+
+			// column major matrices
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[1, ?]?\",  expr: \"columns($.data, $[0])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[2, ?]?\",  expr: \"columns($.data, $[0], $[1])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[3, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[4, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[5, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[6, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[7, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[8, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[9, ?]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[10, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[11, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[12, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[13, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[14, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[15, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13], $[14])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"matrix[16, ?]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13], $[14], $[15])\"}");
+
+			// row major matrices
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 1]?\",  expr: \"columns($.data, $[0])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 2]?\",  expr: \"columns($.data, $[0], $[1])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 3]?\",  expr: \"columns($.data, $[0], $[1], $[2])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 4]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 5]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 6]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 7]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 8]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 9]?\",  expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 10]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 11]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 12]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 13]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 14]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 15]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13], $[14])\"}");
+			lb_add_raddbg_string(m, "type_view: {type: \"#row_major matrix[?, 16]?\", expr: \"columns($.data, $[0], $[1], $[2], $[3], $[4], $[5], $[6], $[7], $[8], $[9], $[10], $[11], $[12], $[13], $[14], $[15])\"}");
+
+
+			TEMPORARY_ALLOCATOR_GUARD();
+
+			u32 global_name_index = 0;
+			for (String str = {}; mpsc_dequeue(&gen->raddebug_section_strings, &str); /**/) {
+				LLVMValueRef data = LLVMConstStringInContext(ctx, cast(char const *)str.text, cast(unsigned)str.len, false);
+				LLVMTypeRef type = LLVMTypeOf(data);
+
+				gbString global_name = gb_string_make(temporary_allocator(), "raddbg_data__");
+				global_name = gb_string_append_fmt(global_name, "%u", global_name_index);
+				global_name_index += 1;
+
+				LLVMValueRef global = LLVMAddGlobal(mod, type, global_name);
+
+				LLVMSetInitializer(global, data);
+				LLVMSetAlignment(global, 1);
+
+				LLVMSetSection(global, ".raddbg");
+			}
+		}
 	}
 
 	if (do_threading) {

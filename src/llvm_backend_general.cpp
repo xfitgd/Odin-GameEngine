@@ -174,8 +174,9 @@ gb_internal bool lb_init_generator(lbGenerator *gen, Checker *c) {
 	mpsc_init(&gen->entities_to_correct_linkage, heap_allocator());
 	mpsc_init(&gen->objc_selectors, heap_allocator());
 	mpsc_init(&gen->objc_classes, heap_allocator());
-	mpsc_init(&gen->objc_ivars, heap_allocator());
-
+  mpsc_init(&gen->objc_ivars, heap_allocator());
+	mpsc_init(&gen->raddebug_section_strings, heap_allocator());
+  
 	return true;
 }
 
@@ -545,8 +546,11 @@ gb_internal lbValue lb_addr_get_ptr(lbProcedure *p, lbAddr const &addr) {
 		break;
 
 	case lbAddr_Swizzle:
+		GB_PANIC("lbAddr_Swizzle should be handled elsewhere");
+		break;
+
 	case lbAddr_SwizzleLarge:
-		// TOOD(bill): is this good enough logic?
+		GB_PANIC("lbAddr_SwizzleLarge should be handled elsewhere");
 		break;
 	}
 
@@ -921,7 +925,7 @@ gb_internal void lb_addr_store(lbProcedure *p, lbAddr addr, lbValue value) {
 		GB_ASSERT(value.value != nullptr);
 		value = lb_emit_conv(p, value, lb_addr_type(addr));
 
-		lbValue dst = lb_addr_get_ptr(p, addr);
+		lbValue dst = addr.addr;
 		lbValue src = lb_address_from_load_or_generate_local(p, value);
 		{
 			lbValue src_ptrs[4] = {};
@@ -947,7 +951,7 @@ gb_internal void lb_addr_store(lbProcedure *p, lbAddr addr, lbValue value) {
 		GB_ASSERT(value.value != nullptr);
 		value = lb_emit_conv(p, value, lb_addr_type(addr));
 
-		lbValue dst = lb_addr_get_ptr(p, addr);
+		lbValue dst = addr.addr;
 		lbValue src = lb_address_from_load_or_generate_local(p, value);
 		for_array(i, addr.swizzle_large.indices) {
 			lbValue src_ptr = lb_emit_array_epi(p, src, i);

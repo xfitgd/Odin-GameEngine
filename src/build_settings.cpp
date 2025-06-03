@@ -288,7 +288,7 @@ enum BuildPath : u8 {
 	BuildPath_VS_LIB,           // vs_library_path
 
 	BuildPath_Output,           // Output Path for .exe, .dll, .so, etc. Can be overridden with `-out:`.
-	BuildPath_PDB,              // Output Path for .pdb file, can be overridden with `-pdb-name:`.
+	BuildPath_Symbols,          // Output Path for .pdb or .dSym file, can be overridden with `-pdb-name:`.
 
 	BuildPathCOUNT,
 };
@@ -2023,6 +2023,39 @@ gb_internal bool check_target_feature_is_superset_of(String const &superset, Str
 	return true;
 }
 
+gb_internal String infer_object_extension_from_build_context() {
+	String output_extension = {};
+	if (is_arch_wasm()) {
+		output_extension = STR_LIT("wasm.o");
+	} else {
+		switch (build_context.metrics.os) {
+		case TargetOs_windows:
+			output_extension = STR_LIT("obj");
+			break;
+		default:
+		case TargetOs_darwin:
+		case TargetOs_linux:
+		case TargetOs_essence:
+			output_extension = STR_LIT("o");
+			break;
+
+		case TargetOs_freestanding:
+			switch (build_context.metrics.abi) {
+			default:
+			case TargetABI_Default:
+			case TargetABI_SysV:
+				output_extension = STR_LIT("o");
+				break;
+			case TargetABI_Win64:
+				output_extension = STR_LIT("obj");
+				break;
+			}
+			break;
+		}
+	}
+	return output_extension;
+}
+
 // NOTE(Jeroen): Set/create the output and other paths and report an error as appropriate.
 // We've previously called `parse_build_flags`, so `out_filepath` should be set.
 gb_internal bool init_build_paths(String init_filename) {
@@ -2064,10 +2097,6 @@ gb_internal bool init_build_paths(String init_filename) {
 				bc->build_paths[BuildPath_RC]      = path_from_string(ha, bc->resource_filepath);
 				bc->build_paths[BuildPath_RC].ext  = copy_string(ha, STR_LIT("rc"));
 			}
-		}
-
-		if (bc->pdb_filepath.len > 0) {
-			bc->build_paths[BuildPath_PDB]     = path_from_string(ha, bc->pdb_filepath);
 		}
 
 		if ((bc->command_kind & Command__does_build) && (!bc->ignore_microsoft_magic)) {
@@ -2159,13 +2188,8 @@ gb_internal bool init_build_paths(String init_filename) {
 		if (build_context.metrics.os == TargetOs_windows) {
 			output_extension = STR_LIT("lib");
 		}
-	}else if (build_context.build_mode == BuildMode_Object) {
-		// By default use a .o object extension.
-		output_extension = STR_LIT("o");
-
-		if (build_context.metrics.os == TargetOs_windows) {
-			output_extension = STR_LIT("obj");
-		}
+	} else if (build_context.build_mode == BuildMode_Object) {
+		output_extension = infer_object_extension_from_build_context();
 	} else if (build_context.build_mode == BuildMode_Assembly) {
 		// By default use a .S asm extension.
 		output_extension = STR_LIT("S");
@@ -2185,7 +2209,7 @@ gb_internal bool init_build_paths(String init_filename) {
 				return false;
 			} else if (bc->build_paths[BuildPath_Output].ext.len == 0) {
 				gb_printf_err("Output path %.*s must have an appropriate extension.\n", LIT(output_file));
-				return false;				
+				return false;
 			}
 		}
 	} else {
@@ -2266,6 +2290,26 @@ gb_internal bool init_build_paths(String init_filename) {
 		output_path.ext  = copy_string(ha, output_extension);
 
 		bc->build_paths[BuildPath_Output] = output_path;
+	}
+
+	if (build_context.ODIN_DEBUG) {
+		if (build_context.metrics.os == TargetOs_windows) {
+			if (bc->pdb_filepath.len > 0) {
+				bc->build_paths[BuildPath_Symbols] = path_from_string(ha, bc->pdb_filepath);
+			} else {
+				Path symbol_path;
+				symbol_path.basename = copy_string(ha, bc->build_paths[BuildPath_Output].basename);
+				symbol_path.name     = copy_string(ha, bc->build_paths[BuildPath_Output].name);
+				symbol_path.ext      = copy_string(ha, STR_LIT("pdb"));
+				bc->build_paths[BuildPath_Symbols] = symbol_path;
+			}
+		} else if (build_context.metrics.os == TargetOs_darwin) {
+			Path symbol_path;
+			symbol_path.basename = copy_string(ha, bc->build_paths[BuildPath_Output].basename);
+			symbol_path.name     = copy_string(ha, bc->build_paths[BuildPath_Output].name);
+			symbol_path.ext      = copy_string(ha, STR_LIT("dSYM"));
+			bc->build_paths[BuildPath_Symbols] = symbol_path;
+		}
 	}
 
 	// Do we have an extension? We might not if the output filename was supplied.
