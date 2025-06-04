@@ -126,7 +126,7 @@ Image_GetProjection :: proc "contextless" (self:^Image) -> ^Projection {
 Image_GetColorTransform :: proc "contextless" (self:^Image) -> ^ColorTransform {
     return IObject_GetColorTransform(self)
 }
-Image_UpdateTransform :: #force_inline proc(self:^Image, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, pivot:linalg.PointF = {0.0,0.0}) {
+Image_UpdateTransform :: #force_inline proc(self:^Image, pos:linalg.Point3DF, rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, pivot:linalg.PointF = {0.0,0.0}) {
     IObject_UpdateTransform(self, pos, rotation, scale, pivot)
 }
 Image_UpdateTransformMatrixRaw :: #force_inline proc(self:^Image, _mat:linalg.Matrix) {

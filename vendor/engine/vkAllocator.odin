@@ -38,8 +38,6 @@ vkBufTempArenaAllocator: mem.Allocator
 	data:      []byte,
 	resource:  ^VkBaseResource,
 	allocator: Maybe(runtime.Allocator),
-	offset:vk.DeviceSize,
-	size:vk.DeviceSize,
 }
 @(private = "file") OpCopyBuffer :: struct {
 	src:    ^VkBufferResource,
@@ -762,8 +760,6 @@ VkBufferResource_CreateTexture :: proc(
 		allocator = allocator,
 		data = data,
 		resource = self,
-		offset = self.gUniformIndices[2],
-		size = auto_cast len(data),
 	})
 }
 
@@ -1351,7 +1347,7 @@ VkUpdateDescriptorSets :: proc(sets: []VkDescriptorSet) {
 	for &node in nodes {
 		mapCopy := &node.(OpMapCopy)
 		idx: ^VkMemBufferNode = auto_cast mapCopy.resource.idx
-		start_ := idx.idx * self.cellSize - self.mapStart + mapCopy.offset
+		start_ := idx.idx * self.cellSize - self.mapStart + mapCopy.resource.gUniformIndices[2]
 		mem.copy_non_overlapping(&self.mapData[start_], raw_data(mapCopy.data), len(mapCopy.data))
 	}
 
@@ -1491,8 +1487,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 					resource = t.uniform,
 					data = t.data,
 					allocator = t.allocator,
-					offset = off,
-					size = t.size,
 				})
 				off += t.size
 			}
@@ -1520,8 +1514,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 												resource = t.uniform,
 												data = t.data,
 												allocator = t.allocator,
-												offset = 0,
-												size = t.size,
 											})
 											inserted = true
 											break out
@@ -1545,8 +1537,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 										resource = t.uniform,
 										data = t.data,
 										allocator = t.allocator,
-										offset = t.uniform.gUniformIndices[2],
-										size = t.size,
 									})
 									g.size += t.size
 									inserted = true
@@ -1569,8 +1559,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 												resource = t.uniform,
 												data = t.data,
 												allocator = t.allocator,
-												offset = t.uniform.gUniformIndices[2],
-												size = t.size,
 											})
 											inserted = true
 											break out
@@ -1593,8 +1581,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 										resource = t.uniform,
 										data = t.data,
 										allocator = t.allocator,
-										offset = t.uniform.gUniformIndices[2],
-										size = t.size,
 									})
 									g.size += t.size
 									inserted = true
@@ -1618,8 +1604,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 							resource = t.uniform,
 							data = t.data,
 							allocator = t.allocator,
-							offset = t.uniform.gUniformIndices[2],
-							size = t.size,
 						})
 						g.size += t.size
 						inserted = true
@@ -1668,8 +1652,6 @@ vkOpExecute :: proc(waitAndDestroy: bool) {
 						resource = t.uniform,
 						data = t.data,
 						allocator = t.allocator,
-						offset = off,
-						size = t.size,
 					})
 					off += t.size
 				}
