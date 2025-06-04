@@ -122,34 +122,34 @@ defAllocator :: proc "contextless" () -> runtime.Allocator {
 }
 
 engineMain :: proc(
-	_windowTitle:cstring = "xfit",
-	_windowX:Maybe(int) = nil,
-	_windowY:Maybe(int) = nil,
-	_windowWidth:Maybe(int) = nil,
-	_windowHeight:Maybe(int) = nil,
-	_vSync:VSync = .Double,
+	windowTitle:cstring = "xfit",
+	windowX:Maybe(int) = nil,
+	windowY:Maybe(int) = nil,
+	windowWidth:Maybe(int) = nil,
+	windowHeight:Maybe(int) = nil,
+	vSync:VSync = .Double,
 ) {
-	assert(!(_windowWidth != nil && _windowWidth.? <= 0))
-	assert(!(_windowHeight != nil && _windowHeight.? <= 0))
+	assert(!(windowWidth != nil && windowWidth.? <= 0))
+	assert(!(windowHeight != nil && windowHeight.? <= 0))
 
 	engineDefAllocator =  runtime.default_allocator()
 	systemInit()
 	systemStart()
 	inited = true
 
-	__windowTitle = _windowTitle
+	__windowTitle = windowTitle
 	when is_android {
 		__windowX = 0
 		__windowY = 0
 
 		__android_SetApp(auto_cast android.get_android_app())
 	} else {
-		__windowX = _windowX
-		__windowY = _windowY
-		__windowWidth = _windowWidth
-		__windowHeight = _windowHeight
+		__windowX = windowX
+		__windowY = windowY
+		__windowWidth = windowWidth
+		__windowHeight = windowHeight
 	}
-	__vSync = _vSync
+	__vSync = vSync
 
 	when is_android {
 		androidStart()
