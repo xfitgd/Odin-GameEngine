@@ -51,7 +51,12 @@ png_decoder_load :: proc (self:^png_decoder, data:[]byte, out_fmt:color_fmt, all
     png_decoder_deinit(self)
 
     err : image.Error = nil
-    self.__in.img, err = png.load_from_bytes(data, allocator = allocator)
+    #partial switch out_fmt {
+        case .RGBA, .RGBA16: self.__in.img, err = png.load_from_bytes(data, png.Options{.alpha_add_if_missing}, allocator = allocator)
+        case .RGB, .RGB16: self.__in.img, err = png.load_from_bytes(data, png.Options{.alpha_drop_if_present}, allocator = allocator)
+        case : trace.panic_log("unsupport option")
+    }
+    
     self.__in.allocator = allocator
 
     if err != nil {
