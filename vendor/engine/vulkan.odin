@@ -1507,7 +1507,7 @@ vkDrawFrame :: proc() {
 
 vkRefreshPreMatrix :: proc() {
 	if is_mobile {
-		orientation := __screenOrientation//TODO CHECK
+		orientation := __screenOrientation
 		if orientation == .Landscape90 {
 			vkRotationMatrix = linalg.matrix4_rotate_f32(linalg.to_radians(f32(90.0)), {0, 0, 1})
 		} else if orientation == .Landscape270 {

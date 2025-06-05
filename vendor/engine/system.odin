@@ -178,7 +178,6 @@ engineMain :: proc(
 
 @(private) systemLoop :: proc() {
 	when is_android {
-		//TODO
 	} else {
 		glfwLoop()
 	}
@@ -187,7 +186,6 @@ engineMain :: proc(
 @(private) systemInit :: proc() {
 	monitors = mem.make_non_zeroed([dynamic]MonitorInfo)
 	when is_android {
-		//TODO
 	} else {
 		glfwSystemInit()
 	}
@@ -195,7 +193,6 @@ engineMain :: proc(
 
 @(private) systemStart :: proc() {
 	when is_android {
-		//TODO
 	} else {
 		glfwSystemStart()
 	}
@@ -203,7 +200,6 @@ engineMain :: proc(
 
 @(private) windowStart :: proc() {
 	when is_android {
-		//TODO
 	} else {
 		glfwStart()
 	}
@@ -211,7 +207,6 @@ engineMain :: proc(
 
 @(private) systemDestroy :: proc() {
 	when is_android {
-		//TODO
 	} else {
 		glfwDestroy()
 		glfwSystemDestroy()

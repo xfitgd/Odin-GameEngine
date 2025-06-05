@@ -13,7 +13,6 @@ BROTLI_COMMON_LIB :: "../compress/brotli/" + library.LIBPATH + "/libbrotlicommon
 BROTLI_DEC_LIB :: "../compress/brotli/" + library.LIBPATH + "/libbrotlidec" + library.ARCH_end
 BROTLI_ENC_LIB :: "../compress/brotli/" + library.LIBPATH + "/libbrotlienc" + library.ARCH_end
 BZIP2_LIB :: "../compress/bzip2/" + library.LIBPATH + "/libbz2" + library.ARCH_end
-ZLIB :: "system:z"
 
 foreign import freetype {
     LIB,
@@ -21,7 +20,6 @@ foreign import freetype {
     BROTLI_ENC_LIB,
     BROTLI_COMMON_LIB,
     BZIP2_LIB,
-    ZLIB,
 }
 
 Library       :: distinct rawptr

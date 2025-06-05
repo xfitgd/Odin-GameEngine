@@ -39,7 +39,7 @@ Shape :: struct {
 Shape_Init :: proc(self:^Shape, $actualType:typeid, src:^ShapeSrc, pos:linalg.Point3DF,
 camera:^Camera, projection:^Projection,  rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0}, vtable:^IObjectVTable = nil)
  where intrinsics.type_is_subtype_of(actualType, Shape) {
-    self2.src = src
+    self.src = src
 
     self.set.bindings = __transformUniformPoolBinding[:]
     self.set.size = __transformUniformPoolSizes[:]
