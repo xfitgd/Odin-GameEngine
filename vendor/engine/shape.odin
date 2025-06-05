@@ -1,7 +1,7 @@
 package engine
 
 import "core:math"
-import "core:math/geometry"
+import "vendor:engine/geometry"
 import "core:mem"
 import "core:slice"
 import "core:sync"

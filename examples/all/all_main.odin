@@ -282,7 +282,7 @@ _ :: utf16
 _ :: sanitizer
 
 
-import geometry "core:math/geometry"
+import geometry "vendor:engine/geometry"
 import poly2tri "core:math/poly2tri"
 import collision "core:math/collision"
 
