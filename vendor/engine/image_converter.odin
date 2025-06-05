@@ -29,3 +29,8 @@ image_converter_load :: proc {
     webp_decoder_load,
     png_decoder_load,
 }
+
+image_converter_load_file :: proc {
+    webp_decoder_load_file,
+    png_decoder_load_file,
+}

@@ -388,15 +388,6 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
     }, self.sampler, nil)
 }
 
-Texture_InitFile :: proc(self:^Texture, file:string, sampler:vk.Sampler = 0) {
-    //TODO
-}
-Texture_InitFileData :: proc(self:^Texture, fileData:[]byte, sampler:vk.Sampler = 0) {
-    //TODO
-}
-
-
-
 Texture_Deinit :: proc(self:^Texture) {
     mem.ICheckInit_Deinit(&self.checkInit)
     VkBufferResource_Deinit(&self.texture)
@@ -442,17 +433,6 @@ TextureArray_Init :: proc(self:^TextureArray, #any_int width:int, #any_int heigh
         type = .TEX2D,
         resourceUsage = .GPU,
     }, self.sampler, pixels, true)
-}
-
-//? one animate webp Image file or multiple other image files
-//! must same image file width and height
-TextureArray_InitFile :: proc(self:^TextureArray, #any_int width:int, #any_int height:int, files:[]string, sampler:vk.Sampler = 0) {
-    //TODO
-}
-//? one animate webp Image file or multiple other image files
-//! must same image file width and height
-TextureArray_InitFileData :: proc(self:^TextureArray, #any_int width:int, #any_int height:int, fileDatas:[]byte, sampler:vk.Sampler = 0) {
-    //TODO
 }
 
 TextureArray_Deinit :: #force_inline proc(self:^TextureArray) {
@@ -503,12 +483,6 @@ TileTextureArray_Init :: proc(self:^TileTextureArray, #any_int tile_width:int, #
         textureUsage = {.IMAGE_RESOURCE},
         type = .TEX2D,
     }, self.sampler, self.allocPixels, false, engineDefAllocator)
-}
-TileTextureArray_InitFile :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, files:[]string, sampler:vk.Sampler = 0) {
-   //TODO
-}
-TileTextureArray_InitFileData :: proc(self:^TileTextureArray, #any_int tile_width:int, #any_int tile_height:int, #any_int width:int, #any_int count:int, fileData:[]byte, sampler:vk.Sampler = 0) {
-   //TODO
 }
 TileTextureArray_Deinit :: #force_inline proc(self:^TileTextureArray) {
     mem.ICheckInit_Deinit(&self.checkInit)

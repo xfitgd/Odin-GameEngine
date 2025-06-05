@@ -2,6 +2,7 @@ package engine
 
 import "core:mem"
 import "core:debug/trace"
+import "core:os/os2"
 import "base:intrinsics"
 import "base:runtime"
 import "vendor:webp"
@@ -84,10 +85,10 @@ webp_decoder_deinit :: proc (self:^webp_decoder) {
     }
 }
 
-webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, int) {
+webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
     webp_decoder_deinit(self)
 
-    errCode := 0
+    errCode :WebP_Error = nil
     animOp:^webp.WebPAnimDecoderOptions
 
     anim_load: {   
@@ -110,23 +111,25 @@ webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, a
 
         self.__in.anim_dec = webp.WebPAnimDecoderNew(&wData, &self.__in.config.(webp.WebPAnimDecoderOptions))
         if self.__in.anim_dec == nil {
-            errCode = -1
+            errCode = .WebPAnimDecoderNew_Failed
             break anim_load
         }
 
         webp.WebPAnimDecoderGetInfo(self.__in.anim_dec, &self.__in.anim_info)
     }
     
-    if errCode != 0 {
+    if errCode != nil {
         //try load static image mode
         self.__in.config = webp.WebPDecoderConfig{}
         webp.WebPInitDecoderConfig(&self.__in.config.(webp.WebPDecoderConfig))
         op := &self.__in.config.(webp.WebPDecoderConfig)
         op.options.no_fancy_upsampling = true
-        errCode = auto_cast webp.WebPGetFeatures(&data[0], len(data), &op.input)
-        if errCode != cast(int)webp.VP8StatusCode.OK {
+        errCode = webp.WebPGetFeatures(&data[0], len(data), &op.input)
+        if errCode != webp.VP8StatusCode.OK {
             self.__in.config = nil
             return nil, errCode
+        } else {
+            errCode = nil
         }
 
         op.options.scaled_width = op.input.width
@@ -148,10 +151,12 @@ webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, a
         t.output.u.RGBA.size = uint(t.output.u.RGBA.stride * t.input.height)
         t.output.is_external_memory = 1
 
-        errC := webp.WebPDecode(&data[0], len(data), &t)
-        if errC != .OK {
+        errCode = webp.WebPDecode(&data[0], len(data), &t)
+        if errCode != webp.VP8StatusCode.OK {
             delete(out_data, allocator)
-            return nil, int(errCode)
+            return nil, errCode
+        } else {
+            errCode = nil
         }
     case webp.WebPAnimDecoderOptions:
         idx := 0
@@ -164,7 +169,7 @@ webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, a
 
             if 0 == webp.WebPAnimDecoderGetNext(self.__in.anim_dec, &buf, &timestamp) {
                 delete(out_data, allocator)
-                return nil, -1
+                return nil, .WebPAnimDecoderGetNext_Failed
             }
             intrinsics.mem_copy_non_overlapping(&out_data[idx], buf, frame_size)
 
@@ -173,4 +178,25 @@ webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, a
     }
 
     return out_data, errCode
+}
+
+WebP_Error_In ::enum {
+    WebPAnimDecoderNew_Failed,
+    WebPAnimDecoderGetNext_Failed,
+}
+
+WebP_Error :: union #shared_nil {
+    WebP_Error_In,
+    webp.VP8StatusCode,
+    os2.Error,
+}
+
+webp_decoder_load_file :: proc (self:^webp_decoder, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
+    imgFileData, imgFileReadErr := os2.read_entire_file_from_path(file_path, context.temp_allocator)
+    if imgFileReadErr != nil {
+        return nil, imgFileReadErr
+    }
+    defer delete(imgFileData, context.temp_allocator)
+
+    return webp_decoder_load(self, imgFileData, out_fmt, allocator)
 }

@@ -7,6 +7,7 @@ import "base:runtime"
 import "core:image/png"
 import "core:image"
 import "core:bytes"
+import "core:os/os2"
 
 
 @private png_decoder_in :: struct {
@@ -46,7 +47,7 @@ png_decoder_deinit :: proc (self:^png_decoder) {
     }
 }
 
-png_decoder_load :: proc (self:^png_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, image.Error) {
+png_decoder_load :: proc (self:^png_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, Png_Error) {
     png_decoder_deinit(self)
 
     err : image.Error = nil
@@ -60,4 +61,19 @@ png_decoder_load :: proc (self:^png_decoder, data:[]byte, out_fmt:color_fmt, all
     out_data := bytes.buffer_to_bytes(&self.__in.img.pixels)
   
     return out_data, err
+}
+
+Png_Error :: union #shared_nil {
+    image.Error,
+    os2.Error,
+}
+
+png_decoder_load_file :: proc (self:^png_decoder, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, Png_Error) {
+    imgFileData, imgFileReadErr := os2.read_entire_file_from_path(file_path, context.temp_allocator)
+    if imgFileReadErr != nil {
+        return nil, imgFileReadErr
+    }
+    defer delete(imgFileData, context.temp_allocator)
+
+    return png_decoder_load(self, imgFileData, out_fmt, allocator)
 }
