@@ -58,13 +58,11 @@ Image :: struct {
 }
 
 AnimateImage :: struct {
-    using object:IObject,
+    using _:ianimate_object,
     using _: __AnimateImageIn,
 }
 
 @private __AnimateImageIn :: struct {
-    frameUniform:VkBufferResource,
-    frame:u32,
     src: ^TextureArray,
 }
 
@@ -157,22 +155,24 @@ _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
 }
 
 
-@private AnimateImageVTable :IObjectVTable = IObjectVTable {
+@private AnimateImageVTable :IAnimateObjectVTable = IAnimateObjectVTable {
     Draw = auto_cast _Super_AnimateImage_Draw,
     Deinit = auto_cast _Super_AnimateImage_Deinit,
+    get_frame_cnt = auto_cast _Super_AnimateImage_get_frame_cnt,
 }
 
 AnimateImage_Init :: proc(self:^AnimateImage, $actualType:typeid, src:^TextureArray, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
-camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, AnimateImage) {
+camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IAnimateObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, AnimateImage) {
     self.src = src
     
     self.set.bindings = __animateImageUniformPoolBinding[:]
     self.set.size = __animateImageUniformPoolSizes[:]
     self.set.layout = vkAnimateTexDescriptorSetLayout
 
-    self.vtable = vtable == nil ? &AnimateImageVTable : vtable
-    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast AnimateImage_Draw
-    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast AnimateImage_Deinit
+    self.vtable = auto_cast (vtable == nil ? &AnimateImageVTable : vtable)
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_AnimateImage_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_AnimateImage_Deinit
+    if ((^IAnimateObjectVTable)(self.vtable)).get_frame_cnt == nil do ((^IAnimateObjectVTable)(self.vtable)).get_frame_cnt = auto_cast _Super_AnimateImage_get_frame_cnt
 
     self.vtable.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
 
@@ -182,6 +182,13 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
     mem.ICheckInit_Deinit(&self.checkInit)
     VkBufferResource_Deinit(&self.matUniform)
+}
+
+
+AnimateImage_get_frame_cnt :: _Super_AnimateImage_get_frame_cnt
+
+_Super_AnimateImage_get_frame_cnt :: proc "contextless" (self:^AnimateImage) -> u32 {
+    return self.src.texture.option.len
 }
 
 AnimateImage_GetTextureArray :: #force_inline proc "contextless" (self:^AnimateImage) -> ^TextureArray {

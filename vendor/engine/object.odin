@@ -38,6 +38,11 @@ IObjectVTable :: struct {
     Update: proc (self:^IObject),
 }
 
+IAnimateObjectVTable :: struct {
+    using _: IObjectVTable,
+    get_frame_cnt: proc "contextless" (self:^ianimate_object) -> u32,
+}
+
 @private __IObjectVTable :: struct {
     __GetUniformResources: proc (self:^IObject) -> []VkUnionResource,
 }
