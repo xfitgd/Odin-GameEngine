@@ -538,7 +538,7 @@ LineSplitLine :: proc "contextless" (pts:[2][$N]$T, t:T) -> (outPts1:[2][N]T, ou
     isCurve:bool,
 }
 
-//TODO Stroke
+//TODO (xfitgd) Stroke
 Shapes_ComputePolygon :: proc(poly:^Shapes, allocator := context.allocator) -> (res:^RawShape = nil, err:ShapesError = .None) {
     vertList:[dynamic]ShapeVertex2D = mem.make_non_zeroed_dynamic_array([dynamic]ShapeVertex2D, allocator)
     indList:[dynamic]u32 = mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
@@ -594,7 +594,7 @@ Shapes_ComputePolygon :: proc(poly:^Shapes, allocator := context.allocator) -> (
                         &outPoly[e],
                         poly.colors[e],
                         pts[:],
-                        .Unknown, 0.5)//TODO 일단은 0.5로 고정
+                        .Unknown, 0.5)//TODO (xfitgd) 일단은 0.5로 고정
                     if err != .None do return
                     i += 3
                 }

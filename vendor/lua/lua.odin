@@ -468,9 +468,9 @@ luaL_getmetatable :: proc (L:^ lua_State,n:cstring)
 // luaL_loadbuffer :: (L:^ lua_State,s,sz,n)	luaL_loadbufferx(L,s,sz,n,NULL)
 
 @(export, link_name="lua_writestring") lua_writestring :: proc "c" (ptr : rawptr, size : c.size_t) -> c.size_t {
-	//TODO
+	//TODO (xfitgd)
 	return 0
 }
 @(export, link_name="lua_writestringerror") lua_writestringerror :: proc "c" (ptr : rawptr, str : cstring) {
-	//TODO
+	//TODO (xfitgd)
 }

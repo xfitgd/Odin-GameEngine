@@ -103,7 +103,7 @@ printTraceBuf :: proc(str:^strings.Builder) {
 			}
 		}
 	} else {
-		//TODO
+		//TODO (xfitgd)
 	}
 }
 

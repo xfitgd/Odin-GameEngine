@@ -320,7 +320,7 @@ Texture_Init :: proc(self:^Texture, #any_int width:int, #any_int height:int, pix
     VkUpdateDescriptorSets(mem.slice_ptr(&self.set, 1))
 }
 
-//sampler nil default //TODO
+//sampler nil default //TODO (xfitgd)
 // Texture_InitR8 :: proc(self:^Texture, #any_int width:int, #any_int height:int) {
 //     mem.ICheckInit_Init(&self.checkInit)
 //     self.sampler = 0

@@ -156,7 +156,7 @@ glfwSystemInit :: proc() {
         processorCoreLen = auto_cast os._unix_get_nprocs()
         println("XFIT SYSLOG processorCoreLen : ", processorCoreLen)
 	} else when ODIN_OS == .Windows {
-		//TODO
+		//TODO (xfitgd)
 	}
 
     if processorCoreLen == 0 do trace.panic_log("processorCoreLen can't zero")
@@ -215,7 +215,7 @@ glfwSystemDestroy :: proc() {
         delete(linuxPlatform.release)
         delete(linuxPlatform.version)
 	} else when ODIN_OS == .Windows {
-		//TODO
+		//TODO (xfitgd)
 	}
   
     glfw.Terminate()
@@ -261,10 +261,10 @@ glfwLoop :: proc() {
         }
     }
     glfwCharProc :: proc "c"  (window: glfw.WindowHandle, codepoint: rune) {
-        //TODO
+        //TODO (xfitgd)
     }
     glfwJoystickProc :: proc "c" (joy, event: c.int) {
-        //TODO
+        //TODO (xfitgd)
     }
     glfwWindowSizeProc :: proc "c" (window: glfw.WindowHandle, width, height: c.int) {
         __windowWidth = int(width)

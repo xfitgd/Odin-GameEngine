@@ -91,7 +91,7 @@ when is_android {
         }
     }
     @(private="file") freeSavedState :: proc "contextless" () {
-        //TODO
+        //TODO (xfitgd)
     }
     @(private="file") handleInput :: proc "c" (app:^android.android_app, evt : ^android.AInputEvent) -> c.int {
         type := android.AInputEvent_getType(evt)
@@ -111,7 +111,7 @@ when is_android {
 
         #partial switch cmd {
             case .SAVE_STATE:
-                //TODO
+                //TODO (xfitgd)
             case .INIT_WINDOW:
                 if app.window != nil {
                     if !appInited {

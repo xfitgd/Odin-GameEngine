@@ -17,7 +17,7 @@ VkDescriptorType :: enum {
     UNIFORM_DYNAMIC,  //vk.DescriptorType.UNIFORM_BUFFER_DYNAMIC
     UNIFORM,  //vk.DescriptorType.UNIFORM_BUFFER
     STORAGE,
-    STORAGE_IMAGE,//TODO
+    STORAGE_IMAGE,//TODO (xfitgd)
 }
 VkDescriptorPoolSize :: struct {type:VkDescriptorType, cnt:u32}
 VkDescriptorPoolMem :: struct {pool:vk.DescriptorPool, cnt:u32}

@@ -326,7 +326,7 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
                 break
             }
     
-            //TODO FT_Outline_New FT_Outline_Copy FT_Outline_Done로 임시객체로 복제하여 Lock Free 구현
+            //TODO (xfitgd) FT_Outline_New FT_Outline_Copy FT_Outline_Done로 임시객체로 복제하여 Lock Free 구현
             if freetype.outline_get_orientation(&self.face.glyph.outline) == freetype.Orientation.FILL_RIGHT {
                 freetype.outline_reverse(&self.face.glyph.outline)
             }

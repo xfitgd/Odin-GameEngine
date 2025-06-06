@@ -57,11 +57,11 @@ Rect_GetFromCenter :: #force_inline proc "contextless" (_pos: [2]$T, _size: [2]T
 	res.size = _size
 	return res
 }
-//TODO
+//TODO (xfitgd)
 Rect_MulMatrix :: proc (_r: RectF, _mat: Matrix) -> RectF #no_bounds_check {
 	panic("")
 }
-//TODO
+//TODO (xfitgd)
 Rect_DivMatrix :: proc (_r: RectF, _mat: Matrix) -> RectF #no_bounds_check {
 	panic("")
 }

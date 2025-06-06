@@ -1172,7 +1172,7 @@ vkStart :: proc() {
 	// )
 	// vk.CreateRenderPass(vkDevice, &renderPassClearInfo, nil, &vkRenderPassClear)
 
-	//TODO
+	//TODO (xfitgd)
 	renderPassCopyInfo := vk.RenderPassCreateInfoInit(
 		pAttachments = []vk.AttachmentDescription{colorAttachment, colorAttachmentLoadResolve},
 		pSubpasses = []vk.SubpassDescription{subpassCopyDesc},
