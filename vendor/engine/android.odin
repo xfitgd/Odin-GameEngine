@@ -118,8 +118,8 @@ when is_android {
                         context = runtime.default_context()
                         vkStart()
 
-                        __windowWidth = vkExtent.width
-		                __windowHeight = vkExtent.height
+                        __windowWidth = int(vkExtent.width)
+		                __windowHeight = int(vkExtent.height)
 
 		                Init()
                         appInited = true
