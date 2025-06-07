@@ -15,7 +15,7 @@ import "core:strings"
 import "base:runtime"
 import "core:debug/trace"
 import "vendor:glfw"
-import "vendor:android"
+import "core:sys/android"
 
 
 @(private) KEY_SIZE :: 512

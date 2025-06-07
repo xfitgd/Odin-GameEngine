@@ -16,7 +16,7 @@ import "core:strings"
 import "base:runtime"
 import "core:debug/trace"
 
-import "vendor:android"
+import "core:sys/android"
 
 //@(private) render_th: ^thread.Thread
 

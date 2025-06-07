@@ -8,7 +8,7 @@ import "core:sys/linux"
 import "core:sys/windows"
 import "core:debug/trace"
 import "base:library"
-import "vendor:android"
+import "core:sys/android"
 
 
 LIB :: library.LIBPATH + "/liblua" + library.ARCH_end

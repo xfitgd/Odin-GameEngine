@@ -11,7 +11,7 @@ import glfw       "vendor:glfw"
 import miniaudio  "vendor:miniaudio"
 //import PM         "vendor:portmidi"
 //import rl         "vendor:raylib"
-import zlib       "vendor:zlib"
+// import zlib       "vendor:zlib"
 
 // import SDL        "vendor:sdl2"
 // import SDLNet     "vendor:sdl2/net"
@@ -113,7 +113,6 @@ _ :: font
 _ :: gui
 _ :: sound
 
-import android "vendor:android"
 
 import ogg "vendor:ogg"
 import opus "vendor:opus"
@@ -124,7 +123,6 @@ import vorbisfile "vendor:vorbisfile"
 import freetype "vendor:freetype"
 import webp "vendor:webp"
 
-_ :: android
 _ :: ogg
 _ :: opus
 _ :: opusfile

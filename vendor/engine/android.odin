@@ -1,7 +1,7 @@
 #+private
 package engine 
 
-import "vendor:android"
+import "core:sys/android"
 import "core:thread"
 import "core:sync"
 import "core:c"

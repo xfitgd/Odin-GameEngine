@@ -6,7 +6,7 @@ import "core:fmt"
 import "core:sync"
 import "base:runtime"
 import "base:intrinsics"
-import "vendor:android"
+import "core:sys/android"
 
 @(private = "file") is_android :: ODIN_PLATFORM_SUBTARGET == .Android
 @(private = "file") is_mobile :: is_android
