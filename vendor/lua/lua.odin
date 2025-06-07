@@ -1,8 +1,14 @@
 package lua;
 
+import "base:runtime"
 import "core:os"
+import "core:mem"
 import "core:c"
+import "core:sys/linux"
+import "core:sys/windows"
+import "core:debug/trace"
 import "base:library"
+import "vendor:android"
 
 
 LIB :: library.LIBPATH + "/liblua" + library.ARCH_end
@@ -468,9 +474,45 @@ luaL_getmetatable :: proc (L:^ lua_State,n:cstring)
 // luaL_loadbuffer :: (L:^ lua_State,s,sz,n)	luaL_loadbufferx(L,s,sz,n,NULL)
 
 @(export, link_name="lua_writestring") lua_writestring :: proc "c" (ptr : rawptr, size : c.size_t) -> c.size_t {
-	//TODO (xfitgd)
+	when  ODIN_PLATFORM_SUBTARGET == .Android {
+		return auto_cast android.__android_log_write(android.LogPriority.INFO, ODIN_BUILD_PROJECT_NAME, cstr)
+	} else when ODIN_OS == .Linux {
+		res, err := linux.write(linux.STDOUT_FILENO, ([^]u8)(ptr)[0:size])
+
+		if err != .NONE {
+			trace.panic_log(err)
+		}
+		return auto_cast res
+	} else when ODIN_OS == .Windows {
+		stdout := windows.GetStdHandle(windows.STD_OUTPUT_HANDLE)
+		wr : windows.DWORD
+		res := windows.WriteFile(stdout, ptr, size, &wr, nil)
+
+		if !res {
+			trace.panic_log(windows.GetLastError())
+		}
+		return auto_cast wr
+	} else {
+		#panic("unsupported OS")
+	}
 	return 0
 }
-@(export, link_name="lua_writestringerror") lua_writestringerror :: proc "c" (ptr : rawptr, str : cstring) {
-	//TODO (xfitgd)
+
+//only has one %s
+@(export, link_name="lua_writestringerror") lua_writestringerror :: proc "c" (fmt : [^]u8, str : [^]u8) {
+	context = runtime.default_context()
+
+	out:[dynamic]u8 = mem.make_non_zeroed_dynamic_array([dynamic]u8, context.temp_allocator)
+	defer delete(out)
+
+	i := 0
+	for ; fmt[i] != 0; i = i + 1 {
+		if fmt[i] == '%' && fmt[i + 1] == 's' {
+			non_zero_append(&out, ..str[0:runtime.cstring_len(auto_cast str)])
+		} else {
+			non_zero_append(&out, fmt[i])
+		}
+	}
+
+	_ = lua_writestring(auto_cast &out[0], auto_cast len(out))
 }
