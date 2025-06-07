@@ -214,7 +214,7 @@ SR_2D_Matrix2 :: proc "contextless" (s: linalg.PointF, r: f32, cp:linalg.PointF)
     return nil
 }
 
-@private IObject_Init :: proc(self:^IObject, $actualType:typeid,
+IObject_Init :: proc(self:^IObject, $actualType:typeid,
     pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1},
     camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0})
     where actualType != IObject && intrinsics.type_is_subtype_of(actualType, IObject) {
@@ -233,6 +233,26 @@ SR_2D_Matrix2 :: proc "contextless" (s: linalg.PointF, r: f32, cp:linalg.PointF)
         type = .UNIFORM,
         resourceUsage = .CPU,
     }, mem.ptr_to_bytes(&self.mat), true)
+
+    resources := __GetUniformResources(self)
+    defer delete(resources, context.temp_allocator)
+    __IObject_UpdateUniform(self, resources)
+
+    self.actualType = actualType
+}
+
+IObject_Init2 :: proc(self:^IObject, $actualType:typeid,
+    camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil)
+    where actualType != IObject && intrinsics.type_is_subtype_of(actualType, IObject) {
+
+    mem.ICheckInit_Init(&self.checkInit)
+    self.camera = camera
+    self.projection = projection
+    self.colorTransform = colorTransform == nil ? &__defColorTransform : colorTransform
+
+    self.set.__set = 0
+
+    self.matUniform.__resource = 0
 
     resources := __GetUniformResources(self)
     defer delete(resources, context.temp_allocator)
@@ -293,20 +313,47 @@ SR_2D_Matrix2 :: proc "contextless" (s: linalg.PointF, r: f32, cp:linalg.PointF)
 IObject_UpdateTransform :: proc(self:^IObject, pos:linalg.Point3DF, rotation:f32 = 0.0, scale:linalg.PointF = {1.0,1.0}, pivot:linalg.PointF = {0.0,0.0}) {
     mem.ICheckInit_Check(&self.checkInit)
     self.mat = SRT_2D_Matrix2(pos, scale, rotation, pivot)
-    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+
+    if self.matUniform.__resource == 0 {
+        VkBufferResource_CreateBuffer(&self.matUniform, {
+            len = size_of(linalg.Matrix),
+            type = .UNIFORM,
+            resourceUsage = .CPU,
+        }, mem.ptr_to_bytes(&self.mat), true)
+    } else {
+        VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+    }
 }
 IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
     mem.ICheckInit_Check(&self.checkInit)
     self.mat = _mat
-    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+    
+    if self.matUniform.__resource == 0 {
+        VkBufferResource_CreateBuffer(&self.matUniform, {
+            len = size_of(linalg.Matrix),
+            type = .UNIFORM,
+            resourceUsage = .CPU,
+        }, mem.ptr_to_bytes(&self.mat), true)
+    } else {
+        VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+    }
 }
 
 IObject_UpdateTransformMatrix :: proc(self:^IObject) {
     mem.ICheckInit_Check(&self.checkInit)
-    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+    
+    if self.matUniform.__resource == 0 {
+        VkBufferResource_CreateBuffer(&self.matUniform, {
+            len = size_of(linalg.Matrix),
+            type = .UNIFORM,
+            resourceUsage = .CPU,
+        }, mem.ptr_to_bytes(&self.mat), true)
+    } else {
+        VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+    }
 }
 
-IObject_UpdateColorTransform :: proc(self:^IObject, colorTransform:^ColorTransform) {
+IObject_ChangeColorTransform :: proc(self:^IObject, colorTransform:^ColorTransform) {
     mem.ICheckInit_Check(&self.checkInit)
     self.colorTransform = colorTransform
     __IObject_UpdateUniform(self, __GetUniformResources(self))

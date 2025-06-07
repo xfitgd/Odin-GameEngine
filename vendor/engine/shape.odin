@@ -54,6 +54,24 @@ camera:^Camera, projection:^Projection,  rotation:f32 = 0.0, scale:linalg.PointF
     IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform, pivot)
 }
 
+Shape_Init2 :: proc(self:^Shape, $actualType:typeid, src:^ShapeSrc,
+camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil)
+ where intrinsics.type_is_subtype_of(actualType, Shape) {
+    self.src = src
+
+    self.set.bindings = __transformUniformPoolBinding[:]
+    self.set.size = __transformUniformPoolSizes[:]
+    self.set.layout = vkShapeDescriptorSetLayout
+
+    self.vtable = vtable == nil ? &ShapeVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_Shape_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_Shape_Deinit
+
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_Default
+
+    IObject_Init2(self, actualType, camera, projection, colorTransform)
+}
+
 _Super_Shape_Deinit :: proc(self:^Shape) {
     mem.ICheckInit_Deinit(&self.checkInit)
     VkBufferResource_Deinit(&self.matUniform)
@@ -82,8 +100,8 @@ Shape_UpdateTransform :: #force_inline proc(self:^Shape, pos:linalg.Point3DF, ro
 Shape_UpdateTransformMatrixRaw :: #force_inline proc(self:^Shape, _mat:linalg.Matrix) {
     IObject_UpdateTransformMatrixRaw(self, _mat)
 }
-Shape_UpdateColorTransform :: #force_inline proc(self:^Shape, colorTransform:^ColorTransform) {
-    IObject_UpdateColorTransform(self, colorTransform)
+Shape_ChangeColorTransform :: #force_inline proc(self:^Shape, colorTransform:^ColorTransform) {
+    IObject_ChangeColorTransform(self, colorTransform)
 }
 Shape_UpdateCamera :: #force_inline proc(self:^Shape, camera:^Camera) {
     IObject_UpdateCamera(self, camera)

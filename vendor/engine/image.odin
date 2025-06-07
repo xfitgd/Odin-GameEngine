@@ -91,7 +91,7 @@ IsAnyImageType :: #force_inline proc "contextless" ($ANY_IMAGE:typeid) -> bool {
 
 Image_Init :: proc(self:^Image, $actualType:typeid, src:^Texture, pos:linalg.Point3DF,
 camera:^Camera, projection:^Projection,
-rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
+rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0}, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
     self.src = src
         
     self.set.bindings = __transformUniformPoolBinding[:]
@@ -104,7 +104,25 @@ rotation:f32 = 0.0, scale:linalg.PointF = {1,1}, colorTransform:^ColorTransform 
 
     self.vtable.__GetUniformResources = auto_cast __GetUniformResources_Default
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform, pivot)
+}
+
+Image_Init2 :: proc(self:^Image, $actualType:typeid, src:^Texture,
+camera:^Camera, projection:^Projection,
+colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, Image) {
+    self.src = src
+        
+    self.set.bindings = __transformUniformPoolBinding[:]
+    self.set.size = __transformUniformPoolSizes[:]
+    self.set.layout = vkTexDescriptorSetLayout
+
+    self.vtable = vtable == nil ? &ImageVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_Image_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_Image_Deinit
+
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_Default
+
+    IObject_Init2(self, actualType, camera, projection, colorTransform)
 }
 
 _Super_Image_Deinit :: proc(self:^Image) {
@@ -139,8 +157,8 @@ Image_UpdateProjection :: #force_inline proc(self:^Image, projection:^Projection
 Image_UpdateTexture :: #force_inline proc "contextless" (self:^Image, src:^Texture) {
     self.src = src
 }
-Image_UpdateColorTransform :: #force_inline proc(self:^Image, colorTransform:^ColorTransform) {
-    IObject_UpdateColorTransform(self, colorTransform)
+Image_ChangeColorTransform :: #force_inline proc(self:^Image, colorTransform:^ColorTransform) {
+    IObject_ChangeColorTransform(self, colorTransform)
 }
 
 _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
@@ -162,6 +180,24 @@ _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
 }
 
 AnimateImage_Init :: proc(self:^AnimateImage, $actualType:typeid, src:^TextureArray, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
+camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {0.0, 0.0}, vtable:^IAnimateObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, AnimateImage) {
+    self.src = src
+    
+    self.set.bindings = __animateImageUniformPoolBinding[:]
+    self.set.size = __animateImageUniformPoolSizes[:]
+    self.set.layout = vkAnimateTexDescriptorSetLayout
+
+    self.vtable = auto_cast (vtable == nil ? &AnimateImageVTable : vtable)
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast _Super_AnimateImage_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast _Super_AnimateImage_Deinit
+    if ((^IAnimateObjectVTable)(self.vtable)).get_frame_cnt == nil do ((^IAnimateObjectVTable)(self.vtable)).get_frame_cnt = auto_cast _Super_AnimateImage_get_frame_cnt
+
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
+
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform, pivot)
+}
+
+AnimateImage_Init2 :: proc(self:^AnimateImage, $actualType:typeid, src:^TextureArray,
 camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IAnimateObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, AnimateImage) {
     self.src = src
     
@@ -176,7 +212,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 
     self.vtable.__GetUniformResources = auto_cast __GetUniformResources_AnimateImage
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
+    IObject_Init2(self, actualType, camera, projection, colorTransform)
 }   
 
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
@@ -209,8 +245,8 @@ AnimateImage_UpdateTransform :: #force_inline proc(self:^AnimateImage, pos:linal
 AnimateImage_UpdateTransformMatrixRaw :: #force_inline proc(self:^AnimateImage, _mat:linalg.Matrix) {
     IObject_UpdateTransformMatrixRaw(self, _mat)
 }
-AnimateImage_UpdateColorTransform :: #force_inline proc(self:^AnimateImage, colorTransform:^ColorTransform) {
-    IObject_UpdateColorTransform(self, colorTransform)
+AnimateImage_ChangeColorTransform :: #force_inline proc(self:^AnimateImage, colorTransform:^ColorTransform) {
+    IObject_ChangeColorTransform(self, colorTransform)
 }
 AnimateImage_UpdateCamera :: #force_inline proc(self:^AnimateImage, camera:^Camera) {
     IObject_UpdateCamera(self, camera)
@@ -238,6 +274,23 @@ _Super_AnimateImage_Draw :: proc (self:^AnimateImage, cmd:vk.CommandBuffer) {
 }
 
 TileImage_Init :: proc(self:^TileImage, $actualType:typeid, src:^TileTextureArray, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, 
+camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, pivot:linalg.PointF = {1,1}, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, TileImage) {
+    self.src = src
+
+    self.set.bindings = __tileImageUniformPoolBinding[:]
+    self.set.size = __tileImageUniformPoolSizes[:]
+    self.set.layout = vkAnimateTexDescriptorSetLayout
+
+    self.vtable = vtable == nil ? &TileImageVTable : vtable
+    if self.vtable.Draw == nil do self.vtable.Draw = auto_cast TileImage_Draw
+    if self.vtable.Deinit == nil do self.vtable.Deinit = auto_cast TileImage_Deinit
+
+    self.vtable.__GetUniformResources = auto_cast __GetUniformResources_TileImage
+
+    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform, pivot)
+}
+
+TileImage_Init2 :: proc(self:^TileImage, $actualType:typeid, src:^TileTextureArray,
 camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrinsics.type_is_subtype_of(actualType, TileImage) {
     self.src = src
 
@@ -251,7 +304,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 
     self.vtable.__GetUniformResources = auto_cast __GetUniformResources_TileImage
 
-    IObject_Init(self, actualType, pos, rotation, scale, camera, projection, colorTransform)
+    IObject_Init2(self, actualType, camera, projection, colorTransform)
 }   
 
 _Super_TileImage_Deinit :: proc(self:^TileImage) {
@@ -268,8 +321,8 @@ TileImage_UpdateTileTextureArray :: #force_inline proc "contextless" (self:^Tile
 TileImage_UpdateTransform :: #force_inline proc(self:^TileImage, pos:linalg.Point3DF, rotation:f32, scale:linalg.PointF = {1,1}, pivot:linalg.PointF = {0.0, 0.0}) {
     IObject_UpdateTransform(self, pos, rotation, scale, pivot)
 }
-TileImage_UpdateColorTransform :: #force_inline proc(self:^TileImage, colorTransform:^ColorTransform) {
-    IObject_UpdateColorTransform(self, colorTransform)
+TileImage_ChangeColorTransform :: #force_inline proc(self:^TileImage, colorTransform:^ColorTransform) {
+    IObject_ChangeColorTransform(self, colorTransform)
 }
 TileImage_UpdateCamera :: #force_inline proc(self:^TileImage, camera:^Camera) {
     IObject_UpdateCamera(self, camera)
