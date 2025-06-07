@@ -254,10 +254,6 @@ IObject_Init2 :: proc(self:^IObject, $actualType:typeid,
 
     self.matUniform.__resource = 0
 
-    resources := __GetUniformResources(self)
-    defer delete(resources, context.temp_allocator)
-    __IObject_UpdateUniform(self, resources)
-
     self.actualType = actualType
 }
 
@@ -320,6 +316,10 @@ IObject_UpdateTransform :: proc(self:^IObject, pos:linalg.Point3DF, rotation:f32
             type = .UNIFORM,
             resourceUsage = .CPU,
         }, mem.ptr_to_bytes(&self.mat), true)
+
+        resources := __GetUniformResources(self)
+        defer delete(resources, context.temp_allocator)
+        __IObject_UpdateUniform(self, resources)
     } else {
         VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
     }
@@ -334,6 +334,10 @@ IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
             type = .UNIFORM,
             resourceUsage = .CPU,
         }, mem.ptr_to_bytes(&self.mat), true)
+
+        resources := __GetUniformResources(self)
+        defer delete(resources, context.temp_allocator)
+        __IObject_UpdateUniform(self, resources)
     } else {
         VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
     }
@@ -348,6 +352,10 @@ IObject_UpdateTransformMatrix :: proc(self:^IObject) {
             type = .UNIFORM,
             resourceUsage = .CPU,
         }, mem.ptr_to_bytes(&self.mat), true)
+
+        resources := __GetUniformResources(self)
+        defer delete(resources, context.temp_allocator)
+        __IObject_UpdateUniform(self, resources)
     } else {
         VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
     }
@@ -493,24 +501,43 @@ SetRenderClearColor :: proc "contextless" (color:linalg.Point3DwF) {
     checkInit: ICheckInit,
 }
 
-//! Non Zeroed Alloc
-AllocObject :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+
+AllocObjectNonZeroed :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
     obj, err := mem.alloc_bytes_non_zeroed(size_of(T),align_of(T), engineDefAllocator)
     if err != .None do return nil, err
 	return transmute(^T)raw_data(obj), .None
 }
 
-//! Non Zeroed Alloc
-AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+
+AllocObjectSliceNonZeroed :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
     arr, err := mem.alloc_bytes_non_zeroed(count * size_of(T), align_of(T), engineDefAllocator)
     if err != .None do return nil, err
     s := runtime.Raw_Slice{raw_data(arr), count}
     return transmute([]T)s, .None
 }
 
-//! Non Zeroed Alloc
-AllocObjectDynamic :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+
+AllocObjectDynamicNonZeroed :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
     res, err := make_non_zeroed_dynamic_array([dynamic]T, engineDefAllocator)
+    if err != .None do return nil, err
+    return res, .None
+}
+
+AllocObject :: #force_inline proc($T:typeid) -> (^T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    obj, err := mem.alloc_bytes(size_of(T),align_of(T), engineDefAllocator)
+    if err != .None do return nil, err
+	return transmute(^T)raw_data(obj), .None
+}
+
+AllocObjectSlice :: #force_inline proc($T:typeid, #any_int count:int) -> ([]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    arr, err := mem.alloc_bytes(count * size_of(T), align_of(T), engineDefAllocator)
+    if err != .None do return nil, err
+    s := runtime.Raw_Slice{raw_data(arr), count}
+    return transmute([]T)s, .None
+}
+
+AllocObjectDynamic :: #force_inline proc($T:typeid) -> ([dynamic]T, runtime.Allocator_Error) where intrinsics.type_is_subtype_of(T, IObject) #optional_allocator_error {
+    res, err := make([dynamic]T, engineDefAllocator)
     if err != .None do return nil, err
     return res, .None
 }
