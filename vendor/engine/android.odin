@@ -14,6 +14,7 @@ import vk "vendor:vulkan"
 
 when is_android {
     @(private="file") app : ^android.android_app
+    @(private="file") appInited := false
 
     VkAndroidSurfaceCreateFlagsKHR :: vk.Flags
     VkAndroidSurfaceCreateInfoKHR :: struct {
@@ -107,8 +108,6 @@ when is_android {
         return 0
     }
     @(private="file") handleCmd :: proc "c" (app:^android.android_app, cmd : android.AppCmd) {
-        @static appInited := false
-
         #partial switch cmd {
             case .SAVE_STATE:
                 //TODO (xfitgd)
@@ -177,7 +176,7 @@ when is_android {
                 ident = android.ALooper_pollAll(!paused ? 0 : -1, nil, &events, cast(^rawptr)&source)
             }
 
-            if (!paused) {
+            if (!paused && appInited) {
                 RenderLoop()
             }
         }

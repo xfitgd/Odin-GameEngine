@@ -3,6 +3,7 @@ package engine
 import "core:mem"
 import "core:debug/trace"
 import "core:os/os2"
+import "core:sys/android"
 import "base:intrinsics"
 import "base:runtime"
 import "vendor:webp"
@@ -192,9 +193,19 @@ WebP_Error :: union #shared_nil {
 }
 
 webp_decoder_load_file :: proc (self:^webp_decoder, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
-    imgFileData, imgFileReadErr := os2.read_entire_file_from_path(file_path, context.temp_allocator)
-    if imgFileReadErr != nil {
-        return nil, imgFileReadErr
+    imgFileData:[]byte
+    when is_android {
+        imgFileReadErr : Android_AssetFileError
+        imgFileData, imgFileReadErr = Android_AssetReadFile(file_path, context.temp_allocator)
+        if imgFileReadErr != .None {
+            trace.panic_log(imgFileReadErr)
+        }
+    } else {
+        imgFileReadErr:os2.Error
+        imgFileData, imgFileReadErr = os2.read_entire_file_from_path(file_path, context.temp_allocator)
+        if imgFileReadErr != nil {
+            return nil, imgFileReadErr
+        }
     }
     defer delete(imgFileData, context.temp_allocator)
 

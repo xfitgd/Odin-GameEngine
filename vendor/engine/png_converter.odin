@@ -74,9 +74,19 @@ Png_Error :: union #shared_nil {
 }
 
 png_decoder_load_file :: proc (self:^png_decoder, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, Png_Error) {
-    imgFileData, imgFileReadErr := os2.read_entire_file_from_path(file_path, context.temp_allocator)
-    if imgFileReadErr != nil {
-        return nil, imgFileReadErr
+    imgFileData:[]byte
+    when is_android {
+        imgFileReadErr : Android_AssetFileError
+        imgFileData, imgFileReadErr = Android_AssetReadFile(file_path, context.temp_allocator)
+        if imgFileReadErr != .None {
+            trace.panic_log(imgFileReadErr)
+        }
+    } else {
+        imgFileReadErr:os2.Error
+        imgFileData, imgFileReadErr = os2.read_entire_file_from_path(file_path, context.temp_allocator)
+        if imgFileReadErr != nil {
+            return nil, imgFileReadErr
+        }
     }
     defer delete(imgFileData, context.temp_allocator)
 
