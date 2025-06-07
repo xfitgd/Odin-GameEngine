@@ -98,12 +98,120 @@ ColorTransform_UpdateMatrixRaw :: proc(self:^ColorTransform, _mat:linalg.Matrix)
 
 
 @(require_results)
-SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg.PointF = {1.0, 1.0}, cp:linalg.PointF = {0.0, 0.0}) -> linalg.Matrix4x4f32 {
+__SRTC_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, s: linalg.PointF, r: f32, cp:linalg.PointF) -> linalg.Matrix4x4f32 {
 	pivot := linalg.matrix4_translate(linalg.Point3DF{cp.x,cp.y,0.0})
 	translation := linalg.matrix4_translate(t)
 	rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
 	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
 	return linalg.mul(translation, linalg.mul(rotation, linalg.mul(pivot, scale)))
+}
+
+@(require_results)
+__SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, s: linalg.PointF, r: f32) -> linalg.Matrix4x4f32 {
+	translation := linalg.matrix4_translate(t)
+	rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
+	return linalg.mul(translation, linalg.mul(rotation, scale))
+}
+
+@(require_results)
+__ST_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, s: linalg.PointF) -> linalg.Matrix4x4f32 {
+	translation := linalg.matrix4_translate(t)
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
+	return linalg.mul(translation, scale)
+}
+
+@(require_results)
+__RT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32) -> linalg.Matrix4x4f32 {
+	translation := linalg.matrix4_translate(t)
+    rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
+	return linalg.mul(translation, rotation)
+}
+
+
+@(require_results)
+__T_2D_Matrix :: proc "contextless" (t: linalg.Point3DF) -> linalg.Matrix4x4f32 {
+	translation := linalg.matrix4_translate(t)
+	return translation
+}
+
+
+SRT_2D_Matrix :: proc {
+    __SRTC_2D_Matrix,
+    __ST_2D_Matrix,
+    __RT_2D_Matrix,
+    __T_2D_Matrix,
+    __SRT_2D_Matrix,
+}
+
+@(require_results)
+__SRC_2D_Matrix :: proc "contextless" (s: linalg.PointF, r: f32, cp:linalg.PointF) -> linalg.Matrix4x4f32 {
+	pivot := linalg.matrix4_translate(linalg.Point3DF{cp.x,cp.y,0.0})
+	rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
+	return linalg.mul(rotation, linalg.mul(pivot, scale))
+}
+
+@(require_results)
+__SR_2D_Matrix :: proc "contextless" (s: linalg.PointF, r: f32) -> linalg.Matrix4x4f32 {
+	rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
+	return linalg.mul(rotation, scale)
+}
+
+@(require_results)
+__S_2D_Matrix :: proc "contextless" (s: linalg.PointF) -> linalg.Matrix4x4f32 {
+	scale := linalg.matrix4_scale(linalg.Point3DF{s.x,s.y,1.0})
+	return scale
+}
+
+@(require_results)
+__R_2D_Matrix :: proc "contextless" (r: f32) -> linalg.Matrix4x4f32 {
+    rotation := linalg.matrix4_rotate_f32(r, linalg.Vector3f32{0.0, 0.0, 1.0})
+	return rotation
+}
+
+SR_2D_Matrix :: proc {
+    __SRC_2D_Matrix,
+    __S_2D_Matrix,
+    __R_2D_Matrix,
+    __SR_2D_Matrix,
+}
+
+@(require_results)
+SRT_2D_Matrix2 :: proc "contextless" (t: linalg.Point3DF, s: linalg.PointF, r: f32, cp:linalg.PointF) -> linalg.Matrix4x4f32 {
+    if cp != {0.0, 0.0} {
+        return __SRTC_2D_Matrix(t,s,r,cp)
+    }
+    if r != 0.0 {
+        if s != {1.0, 1.0} {
+            return __SRT_2D_Matrix(t,s,r)
+        } else {
+            return __RT_2D_Matrix(t,r)
+        }
+    }
+    if s != {1.0, 1.0} {
+        return __ST_2D_Matrix(t,s)
+    }
+    return __T_2D_Matrix(t)
+}
+
+@(require_results)
+SR_2D_Matrix2 :: proc "contextless" (s: linalg.PointF, r: f32, cp:linalg.PointF) -> Maybe(linalg.Matrix4x4f32) {
+    if cp != {0.0, 0.0} {
+        return __SRC_2D_Matrix(s,r,cp)
+    }
+    if r != 0.0 {
+        if s != {1.0, 1.0} {
+            return __SR_2D_Matrix(s,r)
+        } else {
+            return __R_2D_Matrix(r)
+        }
+    }
+    if s != {1.0, 1.0} {
+        return __S_2D_Matrix(s)
+    }
+    return nil
 }
 
 @private IObject_Init :: proc(self:^IObject, $actualType:typeid,
@@ -116,7 +224,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
     self.projection = projection
     self.colorTransform = colorTransform == nil ? &__defColorTransform : colorTransform
     
-    self.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
+    self.mat = SRT_2D_Matrix2(pos, scale, rotation, pivot)
 
     self.set.__set = 0
 
@@ -184,7 +292,7 @@ SRT_2D_Matrix :: proc "contextless" (t: linalg.Point3DF, r: f32 = 0.0, s: linalg
 
 IObject_UpdateTransform :: proc(self:^IObject, pos:linalg.Point3DF, rotation:f32 = 0.0, scale:linalg.PointF = {1.0,1.0}, pivot:linalg.PointF = {0.0,0.0}) {
     mem.ICheckInit_Check(&self.checkInit)
-    self.mat = SRT_2D_Matrix(pos, rotation, scale, pivot)
+    self.mat = SRT_2D_Matrix2(pos, scale, rotation, pivot)
     VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
 IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
@@ -192,6 +300,12 @@ IObject_UpdateTransformMatrixRaw :: proc(self:^IObject, _mat:linalg.Matrix) {
     self.mat = _mat
     VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
 }
+
+IObject_UpdateTransformMatrix :: proc(self:^IObject) {
+    mem.ICheckInit_Check(&self.checkInit)
+    VkBufferResource_CopyUpdate(&self.matUniform, &self.mat)
+}
+
 IObject_UpdateColorTransform :: proc(self:^IObject, colorTransform:^ColorTransform) {
     mem.ICheckInit_Check(&self.checkInit)
     self.colorTransform = colorTransform
