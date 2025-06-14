@@ -17,6 +17,7 @@ import "base:runtime"
 import "core:debug/trace"
 
 import "core:sys/android"
+import "vendor:glfw"
 
 //@(private) render_th: ^thread.Thread
 
@@ -109,8 +110,9 @@ when is_android {
 
 is_android :: ODIN_PLATFORM_SUBTARGET == .Android
 is_mobile :: is_android
-is_log :: #config(__log__, true)
+is_log :: #config(__log__, false)
 
+Icon_Image :: glfw.Image
 
 @(private="file") inited := false
 

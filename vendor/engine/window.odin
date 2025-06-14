@@ -143,3 +143,9 @@ SetVSync :: proc "contextless" (vSync:VSync) {
 GetVSync :: proc "contextless" () -> VSync {
 	return __vSync
 }
+
+SetWindowIcon :: #force_inline proc "contextless" (icons:[]Icon_Image) {
+	when !is_mobile {
+	    glfwSetWindowIcon(auto_cast icons)
+	}
+}

@@ -60,6 +60,10 @@ main :: proc() {
 		if "is-android" in setting {
 			is_android = setting["is-android"].(json.Boolean)
 		}
+		log := true
+		if "log" in setting {
+			log = setting["log"].(json.Boolean)
+		}
 		out_path := strings.join({"-out:", setting["out-path"].(json.String)}, "")
 		defer delete(out_path)
 
@@ -134,6 +138,7 @@ main :: proc() {
 				strings.join({"-out:", outSos[i]}, "", context.temp_allocator), 
 				o, 
 				"-debug" if debug else ({}),
+				"-define:__log__=true" if log else ({}),
 				//"-show-system-calls" if debug else ({}),
 				//"-sanitize:address" if debug else ({}),
 				"-build-mode:shared",
@@ -178,6 +183,7 @@ main :: proc() {
 			out_path, 
 			o, 
 			"-debug" if debug else ({}),
+			"-define:__log__=true" if log else ({}),
 			//"-sanitize:address" if debug else ({}),
 			}) {
 				return

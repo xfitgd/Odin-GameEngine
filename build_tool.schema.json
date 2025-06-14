@@ -15,6 +15,9 @@
 				},
 				"build-type": {
 					"type": "string"
+				},
+				"log": {
+					"type": "boolean"
 				}
 			},
 			"required": ["main-package", "out-path", "build-type"]

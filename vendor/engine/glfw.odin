@@ -79,6 +79,10 @@ glfwSetFullScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
     }
 }
 
+glfwSetWindowIcon :: #force_inline  proc "contextless" (icons:[]Icon_Image) {
+    glfw.SetWindowIcon(wnd, auto_cast icons)
+}
+
 glfwSetBorderlessScreenMode :: proc "contextless" (monitor:^MonitorInfo) {
     glfw.SetWindowMonitor(wnd, nil, monitor.rect.pos.x,
         monitor.rect.pos.y,
@@ -151,15 +155,28 @@ glfwSystemInit :: proc() {
         linuxPlatform.machine = strings.clone_from_ptr(&name.machine[0], bytes.index_byte(name.machine[:], 0))
         linuxPlatform.release = strings.clone_from_ptr(&name.release[0], bytes.index_byte(name.release[:], 0))
         linuxPlatform.version = strings.clone_from_ptr(&name.version[0], bytes.index_byte(name.version[:], 0))
-        println("XFIT SYSLOG : ", linuxPlatform)
+        when is_log {
+            println("XFIT SYSLOG : ", linuxPlatform)
+        }
        
         processorCoreLen = auto_cast os._unix_get_nprocs()
-        println("XFIT SYSLOG processorCoreLen : ", processorCoreLen)
+        when is_log {
+            println("XFIT SYSLOG processorCoreLen : ", processorCoreLen)
+        }
 	} else when ODIN_OS == .Windows {
 		//TODO (xfitgd)
 	}
 
     if processorCoreLen == 0 do trace.panic_log("processorCoreLen can't zero")
+
+    when is_log do glfw.SetErrorCallback(glfwErrorCallback)
+}
+
+glfwErrorCallback :: proc "c" (error: c.int, description: cstring) {
+    when is_log {
+        context = runtime.default_context()
+        println("XFIT SYSLOG : glfw", error, description)
+    }
 }
 
 glfwSystemStart :: proc() {
