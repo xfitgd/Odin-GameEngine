@@ -159,6 +159,12 @@ jobs:
       - name: Odin check examples/all for OpenBSD amd64
         if: matrix.os == 'ubuntu-latest'
         run: ./odin check examples/all -vet -strict-style -disallow-do -target:openbsd_amd64
+      - name: Odin check examples/all for js_wasm32
+        if: matrix.os == 'ubuntu-latest'
+        run: ./odin check examples/all -vet -strict-style -disallow-do -no-entry-point -target:js_wasm32
+      - name: Odin check examples/all for js_wasm64p32
+        if: matrix.os == 'ubuntu-latest'
+        run: ./odin check examples/all -vet -strict-style -disallow-do -no-entry-point -target:js_wasm64p32
 
       - name: Odin check examples/all/sdl3 for Linux i386
         if: matrix.os == 'ubuntu-latest'
@@ -250,12 +256,6 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat
           cd tests\documentation
-          call build.bat
-      - name: core:math/big tests
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat
-          cd tests\core\math\big
           call build.bat
       - name: Odin check examples/all for Windows 32bits
         shell: cmd
