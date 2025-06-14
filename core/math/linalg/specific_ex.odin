@@ -3,6 +3,7 @@ package linalg
 import "base:builtin"
 import "base:intrinsics"
 import "core:math"
+import "core:mem"
 
 RectI :: Rect_(i32)
 RectU :: Rect_(u32)
@@ -261,6 +262,21 @@ LinesIntersect :: proc "contextless" (a1 : [2]$T, a2 : [2]T, b1: [2]T, b2 : [2]T
 	return (Orientation(a1, a2, b1) != Orientation(a1, a2, b2) && Orientation(b1, b2, a1) != Orientation(b1, b2, a2));
 }
 
+// based on http://local.wasp.uwa.edu.au/~pbourke/geometry/lineline2d/, edgeA => "line a", edgeB => "line b"
+LinesIntersect2 :: proc "contextless" (a1 : [2]$T, a2 : [2]T, b1: [2]T, b2 : [2]T) -> (bool, bool, [2]T) where intrinsics.type_is_float(T) {
+	den :T = (b2.y - b1.y) * (a2.x - a1.x) - (b2.x - b1.x) * (a2.y - a1.y)
+	if den == 0.0 {
+		return false, false, {}
+	}
+
+	ua := ((b2.x - b1.x) * (a1.y - b1.y) - (b2.y - b1.y) * (a1.x - b1.x)) / den
+	ub := ((a2.x - a1.x) * (a1.y - b1.y) - (a2.y - a1.y) * (a1.x - b1.x)) / den
+
+	return true, ua >= 0.0 && ub >= 0.0 && ua <= 1.0 && ub <= 1.0, [2]T{a1.x + ua * (a2.x - a1.x), a1.y + ua * (a2.y - a1.y)}
+
+}
+
+
 NearestPointBetweenPointAndLine :: proc "contextless" (p:[2]$T, l0:[2]T, l1:[2]T) -> [2]T where intrinsics.type_is_float(T) {
 	AB := l1 - l0
 	AC := p - l0
@@ -285,25 +301,98 @@ OppPolyOrientation :: #force_inline proc "contextless" (ccw:PolyOrientation) -> 
 	return ccw == .Clockwise ? .CounterClockwise : .Clockwise
 }
 
-//https://stackoverflow.com/a/73061541
-LineExtendPoint :: proc "contextless" (prev:[2]$T, cur:[2]T, next:[2]T, thickness:T, ccw:PolyOrientation) -> [2]T where intrinsics.type_is_float(T) {
-	vn : [2]T = next - cur
-	vnn : [2]T = linalg.normalize(vn)
-	nnnX := vnn.y
-	nnnY := -vnn.x
+//TODO (xfitgd)
+// //See https://github.com/Stanko/offset-polygon
+// offsetPolygon :: proc (pts:[][2]$T, offset:T, allocator := context.allocator) -> [][2]T where intrinsics.type_is_float(T) {
+// 	__Edge :: struct {
+// 		v1:[2]T,
+// 		v2:[2]T,
+// 		outward_normal:[2]T,
+// 		inward_normal:[2]T,
+// 		idx:int,
+// 	}
+// 	__OffsetEdge :: struct {
+// 		v1:[2]T,
+// 		v2:[2]T,
+// 	}
+// 	__Polygon :: struct {
+// 		vertices:[][2]T,
+// 		edges:[]__Edge,
+// 	}
+// 	poly : __Polygon = createPolygon(pts)
+// 	defer delete(poly.edges, context.temp_allocator)
 
-	ccw_ : T = (ccw == .Clockwise ? -1 : 1)
-	vp : [2]T = cur - prev
-	vpn: [2]T = linalg.normalize(vp)
-	npnX := vpn.y * ccw_
-	npnY := vpn.x * ccw_
+// 	createPolygon :: proc (pts:[][2]$T) -> __Polygon {
+// 		edges : []__Edge = mem.make_non_zeroed_slice([]__Edge, len(pts), context.temp_allocator)
 
-	bis := [2]T{(nnnX + npnY) * ccw_, (nnnY + npnX) * ccw_}
-	bisn : [2]T = linalg.normalize(bis)
-	bislen := thickness / intrinsics.sqrt((1 + nnnX * npnX + nnnY * npnY) / 2)
+// 		for i in 0..<len(pts) {
+// 			v1 := pts[i]
+// 			v2 := pts[(i + 1) % len(pts)]
 
-	return {cur.x + bislen * bisn.x, cur.y + bislen * bisn.y}
-}
+// 			outward_normal := outward_edge_normal(v1, v2)
+// 			inward_normal := inward_edge_normal(v1, v2)
+
+// 			edge : __Edge = {
+// 				v1,
+// 				v2,
+// 				outward_normal,
+// 				inward_normal,
+// 				i
+// 			}
+// 			edges[i] = edge
+// 		}
+
+// 		return __Polygon{ pts, edges }
+// 	}
+
+// 	outward_edge_normal :: #force_inline proc "contextless" (v1:[2]T, v2:[2]T) -> [2]T {
+// 		out := inward_edge_normal(v1, v2)
+// 		return [2]T{-out.x, -out.y}
+// 	}
+
+// 	// See http://paulbourke.net/geometry/pointlineplane/
+// 	inward_edge_normal :: proc "contextless" (v1:[2]T, v2:[2]T) -> [2]T {
+// 		d := v2 - v1
+// 		len := math.sqrt(d.x * d.x + d.y * d.y)
+
+// 		return [2]T{
+// 			-d.y / len,
+// 			d.x / len
+// 		}
+// 	}
+
+// 	create_offset_edge :: #force_inline proc "contextless" (edge:__Edge, d:[2]T) -> __OffsetEdge {
+// 		return __OffsetEdge{edge.v1 + d, edge.v2 + d}
+// 	}
+
+// 	out:[][2]T = mem.make_non_zeroed_slice([][2]T, len(pts), allocator)
+// 	offset_edges : []__OffsetEdge = mem.make_non_zeroed_slice([]__OffsetEdge, len(pts), context.temp_allocator)
+// 	defer delete(offset_edges, context.temp_allocator)
+
+// 	if offset > 0 {
+// 		for e, i in poly.edges {
+// 			d := e.outward_normal * offset
+// 			offset_edges[i] = create_offset_edge(e, d)
+// 		}
+// 	} else {
+// 		for e, i in poly.edges {
+// 			d := e.inward_normal * offset
+// 			offset_edges[i] = create_offset_edge(e, d)
+// 		}
+// 	}
+
+// 	for e, i in offset_edges {
+// 		prev := offset_edges[(i + len(offset_edges) - 1) % len(offset_edges)]
+// 		den, _, v := LinesIntersect2(prev.v1, prev.v2, e.v1, e.v2)
+// 		if den {
+// 			out[i] = v
+// 		} else {
+// 			out[i] = e.v1
+// 		}
+// 	}
+
+// 	return out
+// }
 
 MirrorPoint :: #force_inline proc "contextless" (pivot : [2]$T, target : [2]T) -> [2]T where intrinsics.type_is_float(T) {
 	return [2]T{2,2} * pivot - target

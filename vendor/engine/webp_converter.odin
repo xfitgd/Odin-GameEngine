@@ -13,19 +13,18 @@ import "vendor:webp"
     webp.WebPAnimDecoderOptions,
 }
 
-@private webp_decoder_in :: struct {
+@private webp_converter_in :: struct {
     anim_dec:^webp.WebPAnimDecoder,
     anim_info:webp.WebPAnimInfo,
     out_fmt:color_fmt,
     config:webp_config,
     allocator:runtime.Allocator,
 }
-webp_decoder :: struct {
-    __in : webp_decoder_in,
+webp_converter :: struct {
+    __in : webp_converter_in,
 }
 
-
-webp_decoder_width :: proc "contextless" (self:^webp_decoder) -> int {
+webp_converter_width :: proc "contextless" (self:^webp_converter) -> int {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPDecoderConfig:
@@ -37,7 +36,7 @@ webp_decoder_width :: proc "contextless" (self:^webp_decoder) -> int {
     return -1
 }
 
-webp_decoder_height :: proc "contextless" (self:^webp_decoder) -> int {
+webp_converter_height :: proc "contextless" (self:^webp_converter) -> int {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPDecoderConfig:
@@ -49,7 +48,7 @@ webp_decoder_height :: proc "contextless" (self:^webp_decoder) -> int {
     return -1
 }
 
-webp_decoder_size :: proc "contextless" (self:^webp_decoder) -> int {
+webp_converter_size :: proc "contextless" (self:^webp_converter) -> int {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPDecoderConfig:
@@ -61,7 +60,7 @@ webp_decoder_size :: proc "contextless" (self:^webp_decoder) -> int {
     return -1
 }
 
-webp_decoder_frame_cnt :: proc "contextless" (self:^webp_decoder) -> int {
+webp_converter_frame_cnt :: proc "contextless" (self:^webp_converter) -> int {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPAnimDecoderOptions:
@@ -73,7 +72,7 @@ webp_decoder_frame_cnt :: proc "contextless" (self:^webp_decoder) -> int {
     return -1
 }
 
-webp_decoder_deinit :: proc (self:^webp_decoder) {
+webp_converter_deinit :: proc (self:^webp_converter) {
     if self.__in.config != nil {
         switch &t in self.__in.config {
         case webp.WebPDecoderConfig:
@@ -86,8 +85,8 @@ webp_decoder_deinit :: proc (self:^webp_decoder) {
     }
 }
 
-webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
-    webp_decoder_deinit(self)
+webp_converter_load :: proc (self:^webp_converter, data:[]byte, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
+    webp_converter_deinit(self)
 
     errCode :WebP_Error = nil
     animOp:^webp.WebPAnimDecoderOptions
@@ -141,7 +140,7 @@ webp_decoder_load :: proc (self:^webp_decoder, data:[]byte, out_fmt:color_fmt, a
     self.__in.out_fmt = out_fmt
     self.__in.allocator = allocator
 
-    out_data := mem.make_non_zeroed_slice([]byte, webp_decoder_size(self), allocator)
+    out_data := mem.make_non_zeroed_slice([]byte, webp_converter_size(self), allocator)
 
     bit := color_fmt_bit(self.__in.out_fmt) >> 3
 
@@ -192,7 +191,7 @@ WebP_Error :: union #shared_nil {
     os2.Error,
 }
 
-webp_decoder_load_file :: proc (self:^webp_decoder, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
+webp_converter_load_file :: proc (self:^webp_converter, file_path:string, out_fmt:color_fmt, allocator := context.allocator) -> ([]byte, WebP_Error) {
     imgFileData:[]byte
     when is_android {
         imgFileReadErr : Android_AssetFileError
@@ -209,5 +208,5 @@ webp_decoder_load_file :: proc (self:^webp_decoder, file_path:string, out_fmt:co
     }
     defer delete(imgFileData, context.temp_allocator)
 
-    return webp_decoder_load(self, imgFileData, out_fmt, allocator)
+    return webp_converter_load(self, imgFileData, out_fmt, allocator)
 }

@@ -378,9 +378,6 @@ allocator : runtime.Allocator) -> (rect:linalg.RectF, err:geometry.ShapesError =
                 poly.nTypes[data.nTypes] = data.nTypesLen
                 poly.poly = mem.resize_non_zeroed_slice(poly.poly, data.idx, )
                 poly.types = mem.resize_non_zeroed_slice(poly.types, data.typeIdx, )
-               
-                poly.strokeColors = nil
-                poly.thickness = nil
 
                 rawP : ^geometry.RawShape
                 rawP , shapeErr = geometry.Shapes_ComputePolygon(&poly, engine.defAllocator())//높은 부하 작업 High load operations

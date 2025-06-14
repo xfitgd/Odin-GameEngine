@@ -19,6 +19,7 @@ TextureFmt :: enum {
 }
 
 color_fmt :: enum {
+    Unknown,
 	RGB,
     BGR,
     RGBA,
@@ -59,7 +60,8 @@ color_fmt_bit :: proc "contextless" (fmt: color_fmt) -> int {
         case .RGBA16, .BGRA16, .ABGR16, .ARGB16 : return 64
         case .RGB32, .BGR32, .RGB32F, .BGR32F : return 96
         case .RGBA32, .BGRA32, .ABGR32, .ARGB32, .RGBA32F, .BGRA32F, .ABGR32F, .ARGB32F : return 128
-		case: 
+		case .Unknown:
+            trace.panic_log("unknown")
     };
 	return 0
 }

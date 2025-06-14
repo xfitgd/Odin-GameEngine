@@ -1,36 +1,60 @@
 package engine
 
+import "core:image"
 
 image_converter_width :: proc {
-    webp_decoder_width,
-    png_decoder_width,
+    webp_converter_width,
+    png_converter_width,
+    qoi_converter_width,
 }
 
 image_converter_height :: proc {
-    webp_decoder_height,
-    png_decoder_height,
+    webp_converter_height,
+    png_converter_height,
+    qoi_converter_height,
 }
 
 image_converter_size :: proc {
-    webp_decoder_size,
-    png_decoder_size,
+    webp_converter_size,
+    png_converter_size,
+    qoi_converter_size,
 }
 
 image_converter_frame_cnt :: proc {
-    webp_decoder_frame_cnt,
+    webp_converter_frame_cnt,
 }
 
-image_converter_deinit :: proc {
-    webp_decoder_deinit,
-    png_decoder_deinit,
+image_converter_deinit :: proc (self:^$T) where T == webp_converter || T == qoi_converter || T == png_converter {
+    when T == webp_converter {
+        webp_converter_deinit(self)
+    } else {
+        if self.__in.img != nil {
+            if self.__in.img.pixels.buf != nil {
+                image.destroy(self.__in.img, self.__in.allocator)
+            } else {
+                free(self.__in.img, self.__in.allocator)
+            }
+            self.__in.img = nil
+        }
+    }
 }
 
 image_converter_load :: proc {
-    webp_decoder_load,
-    png_decoder_load,
+    webp_converter_load,
+    png_converter_load,
+    qoi_converter_load,
 }
 
 image_converter_load_file :: proc {
-    webp_decoder_load_file,
-    png_decoder_load_file,
+    webp_converter_load_file,
+    png_converter_load_file,
+    qoi_converter_load_file,
+}
+
+image_converter_encode :: proc {
+    qoi_converter_encode,
+}
+
+image_converter_encode_file :: proc {
+    qoi_converter_encode_file,
 }

@@ -97,8 +97,8 @@ Shapes :: struct {
     nTypes:[]u32,
     types:[]CurveType,
     colors:[]linalg.Point3DwF,
-    strokeColors:[]linalg.Point3DwF,
-    thickness:[]f32,
+    // strokeColors:[]linalg.Point3DwF,
+    // thickness:[]f32,
 }
 
 CvtQuadraticToCubic0 :: #force_inline proc "contextless" (_start : linalg.PointF, _control : linalg.PointF) -> linalg.PointF {
@@ -542,23 +542,9 @@ LineSplitLine :: proc "contextless" (pts:[2][$N]$T, t:T) -> (outPts1:[2][N]T, ou
 Shapes_ComputePolygon :: proc(poly:^Shapes, allocator := context.allocator) -> (res:^RawShape = nil, err:ShapesError = .None) {
     vertList:[dynamic]ShapeVertex2D = mem.make_non_zeroed_dynamic_array([dynamic]ShapeVertex2D, allocator)
     indList:[dynamic]u32 = mem.make_non_zeroed_dynamic_array([dynamic]u32, allocator)
-    outPoly:[][dynamic]CurveStruct = mem.make_non_zeroed_slice([][dynamic]CurveStruct, len(poly.nPolys), context.temp_allocator)
-    outPoly2:[dynamic]linalg.PointF = mem.make_non_zeroed_dynamic_array([dynamic]linalg.PointF, context.temp_allocator)
-    outPoly2N:[]u32 = mem.make_non_zeroed_slice([]u32, len(poly.nPolys), context.temp_allocator)
-    for &o in outPoly {
-        o = mem.make_non_zeroed_dynamic_array([dynamic]CurveStruct, context.temp_allocator)
-    }
-
-    defer {
-        for o in outPoly {
-            delete(o)
-        }
-        delete(outPoly, context.temp_allocator)
-        delete(outPoly2)
-        delete(outPoly2N, context.temp_allocator)
-    }
 
     res = mem.new_non_zeroed(RawShape, allocator)
+
     defer if err != .None {
         delete(vertList)
         delete(indList)
@@ -566,110 +552,225 @@ Shapes_ComputePolygon :: proc(poly:^Shapes, allocator := context.allocator) -> (
         res = nil
     }
 
-    start :u32 = 0
-    typeIdx :u32 = 0
+    Shapes_ComputePolygon_In :: proc(vertList:^[dynamic]ShapeVertex2D, indList:^[dynamic]u32, poly:^Shapes, allocator := context.allocator) -> (err:ShapesError = .None) {
+        outPoly:[][dynamic]CurveStruct = mem.make_non_zeroed_slice([][dynamic]CurveStruct, len(poly.nPolys), context.temp_allocator)
+        outPoly2:[dynamic]linalg.PointF = mem.make_non_zeroed_dynamic_array([dynamic]linalg.PointF, context.temp_allocator)
+        outPoly2N:[]u32 = mem.make_non_zeroed_slice([]u32, len(poly.nPolys), context.temp_allocator)
+        for &o in outPoly {
+            o = mem.make_non_zeroed_dynamic_array([dynamic]CurveStruct, context.temp_allocator)
+        }
 
-    for n,e in poly.nPolys {
-        if poly.colors != nil && poly.colors[e].a > 0 {
-            for i:u32 = start; i < start+n; typeIdx += 1 {
-                if poly.types[typeIdx] == .Line {
-                    non_zero_append(&outPoly[e], CurveStruct{poly.poly[i], false})
-                    i += 1
-                } else if poly.types[typeIdx] == .Quadratic {
-                    pts := [3]linalg.PointF{poly.poly[i], poly.poly[i+1], i + 2 == start+n ? poly.poly[start] : poly.poly[i+2]}
-                    err = _Shapes_ComputeLine(
-                        &vertList,
-                        &indList,
-                        &outPoly[e],
-                        poly.colors[e],
-                        pts[:],
-                        .Quadratic, 0.5)
-                    if err != .None do return
-                    i += 2
-                } else {
-                    pts := [4]linalg.PointF{poly.poly[i], poly.poly[i+1], poly.poly[i+2], i + 3 == start+n ? poly.poly[start] : poly.poly[i+3]}
-                    err = _Shapes_ComputeLine(
-                        &vertList,
-                        &indList,
-                        &outPoly[e],
-                        poly.colors[e],
-                        pts[:],
-                        .Unknown, 0.5)//TODO (xfitgd) 일단은 0.5로 고정
-                    if err != .None do return
-                    i += 3
+        defer {
+            for o in outPoly {
+                delete(o)
+            }
+            delete(outPoly, context.temp_allocator)
+            delete(outPoly2)
+            delete(outPoly2N, context.temp_allocator)
+        }
+
+        start :u32 = 0
+        typeIdx :u32 = 0
+
+        for n,e in poly.nPolys {
+            if poly.colors != nil && poly.colors[e].a > 0 {
+                for i:u32 = start; i < start+n; typeIdx += 1 {
+                    if poly.types[typeIdx] == .Line {
+                        non_zero_append(&outPoly[e], CurveStruct{poly.poly[i], false})
+                        i += 1
+                    } else if poly.types[typeIdx] == .Quadratic {
+                        pts := [3]linalg.PointF{poly.poly[i], poly.poly[i+1], i + 2 == start+n ? poly.poly[start] : poly.poly[i+2]}
+                        err = _Shapes_ComputeLine(
+                            vertList,
+                            indList,
+                            &outPoly[e],
+                            poly.colors[e],
+                            pts[:],
+                            .Quadratic, 0.5)
+                        if err != .None do return
+                        i += 2
+                    } else {
+                        pts := [4]linalg.PointF{poly.poly[i], poly.poly[i+1], poly.poly[i+2], i + 3 == start+n ? poly.poly[start] : poly.poly[i+3]}
+                        err = _Shapes_ComputeLine(
+                            vertList,
+                            indList,
+                            &outPoly[e],
+                            poly.colors[e],
+                            pts[:],
+                            .Unknown, 0.5)//TODO (xfitgd) 일단은 0.5로 고정
+                        if err != .None do return
+                        i += 3
+                    }
+                }
+            } else {
+                typeIdx += poly.nTypes[e]
+            }
+            start += n
+        }
+
+        for ps, psi in outPoly {
+            if len(ps) == 0 do continue
+            np :u32 = 0
+
+            pT := mem.make_non_zeroed_dynamic_array([dynamic]linalg.PointF, context.temp_allocator )
+            defer delete(pT)
+            for p in ps {
+                if !p.isCurve {
+                    non_zero_append(&pT, p.p)
                 }
             }
-        } else {
-            typeIdx += poly.nTypes[e]
-        }
-        start += n
-    }
 
-    for ps, psi in outPoly {
-        np :u32 = 0
-
-        pT := mem.make_non_zeroed_dynamic_array([dynamic]linalg.PointF, context.temp_allocator )
-        defer delete(pT)
-        for p in ps {
-            if !p.isCurve {
-                non_zero_append(&pT, p.p)
-            }
-        }
-
-        if linalg.GetPolygonOrientation(pT[:]) == .Clockwise {
-            for p in ps {
-                non_zero_append(&outPoly2, p.p)
-                np += 1
-            }
-        } else {
-            for p,i in ps {
-                if p.isCurve {
-                    if linalg.PointInPolygon(p.p, pT[:]) {
-                        non_zero_append(&outPoly2, p.p)
-                        np += 1
-                    }
-                } else {
+            if linalg.GetPolygonOrientation(pT[:]) == .Clockwise {
+                for p in ps {
                     non_zero_append(&outPoly2, p.p)
                     np += 1
                 }
+            } else {
+                for p,i in ps {
+                    if p.isCurve {
+                        if linalg.PointInPolygon(p.p, pT[:]) {
+                            non_zero_append(&outPoly2, p.p)
+                            np += 1
+                        }
+                    } else {
+                        non_zero_append(&outPoly2, p.p)
+                        np += 1
+                    }
+                }
             }
+
+            outPoly2N[psi] = np
         }
+        if len(outPoly2) == 0 do return
 
-        outPoly2N[psi] = np
-    }
-
-    tErr : poly2tri.Trianguate_Error
-    res.indices, tErr = poly2tri.TrianguatePolygons(outPoly2[:], outPoly2N[:], allocator)
-    defer if err != .None {
-        delete(res.indices, allocator)
-    }
-    if tErr != .None {
-        err = auto_cast tErr
+        indicesT, tErr := poly2tri.TrianguatePolygons(outPoly2[:], outPoly2N[:], context.temp_allocator)
+        defer delete(indicesT, context.temp_allocator)
+        
+        if tErr != .None {
+            err = auto_cast tErr
+            return
+        }
+    
+        start = 0
+        vLen :u32 = auto_cast len(vertList)//Existing Curve Vertices Length
+        for _, i in outPoly2N {
+            for idx in start..<start+outPoly2N[i] {
+                non_zero_append(vertList, ShapeVertex2D{
+                    pos = outPoly2[idx],
+                    uvw = {1,0,0},
+                    color = poly.colors[i],
+                })
+            }
+            start += outPoly2N[i]
+        }
+        if len(indList) > 0 {
+            for _, i in indicesT {
+                indicesT[i] += vLen
+            }
+            non_zero_append(indList, ..indicesT)
+        }
         return
     }
-   
-    start = 0
-    vLen :u32 = auto_cast len(vertList)//Existing Curve Vertices Length
-    for _, i in outPoly2N {
-        for idx in start..<start+outPoly2N[i] {
-            non_zero_append(&vertList, ShapeVertex2D{
-                pos = outPoly2[idx],
-                uvw = {1,0,0},
-                color = poly.colors[i],
-            })
-        }
-        start += outPoly2N[i]
-    }
-    if len(indList) > 0 {
-        for _, i in res.indices {
-            res.indices[i] += vLen
-        }
-        oldLen := len(res.indices)
-        res.indices = mem.resize_non_zeroed_slice(res.indices, len(res.indices) + len(indList), allocator)
-        intrinsics.mem_copy_non_overlapping(&res.indices[oldLen], &indList[0], len(indList) * size_of(u32))
-    }
+
+
+    err = Shapes_ComputePolygon_In(&vertList, &indList, poly, allocator)
+    if err != .None do return
+
+    //TODO (xfitgd)
+    // if poly.thickness != nil && poly.strokeColors != nil {
+    //     np :u32 = 0
+    //     nt :u32 = 0
+    //     for i in 0..<len(poly.thickness) {
+    //         if poly.thickness[i] > 0.0 && poly.strokeColors[i].a > 0.0 {
+    //             polyT:Shapes
+    //             polyT.poly = mem.make_non_zeroed_slice([]linalg.PointF, poly.nPolys[i] * 2, context.temp_allocator)
+    //             defer delete(polyT.poly, context.temp_allocator)
+
+    //             ccw := linalg.GetPolygonOrientation(poly.poly[np:np + poly.nPolys[i]])
+    //             if ccw == .CounterClockwise {
+    //                 for j in 0..<int(poly.nPolys[i]) {
+    //                     if j == 0 {
+    //                         polyT.poly[poly.nPolys[i] + 0] = poly.poly[np + u32(j)]
+    //                     } else {
+    //                         polyT.poly[poly.nPolys[i] + (poly.nPolys[i] - u32(j))] = poly.poly[np + u32(j)]
+    //                     }
+    //                 }
+    //                 pt1 := linalg.offsetPolygon(poly.poly[np:np + poly.nPolys[i]], poly.thickness[i], context.temp_allocator)
+    //                 defer delete(pt1, context.temp_allocator)
+    //                 pt2 := linalg.offsetPolygon(polyT.poly[poly.nPolys[i]:poly.nPolys[i] + poly.nPolys[i]], poly.thickness[i], context.temp_allocator)
+    //                 defer delete(pt2, context.temp_allocator)
+
+    //                 for &p, i in polyT.poly[0:poly.nPolys[i]] {
+    //                     p = pt1[i]
+    //                 }
+    //                 for &p, i in polyT.poly[poly.nPolys[i]:poly.nPolys[i] + poly.nPolys[i]] {
+    //                     p = pt2[i]
+    //                 }
+    //             } else {
+    //                 for j in 0..<int(poly.nPolys[i]) {
+    //                     if j == 0 {
+    //                         polyT.poly[0] = poly.poly[np + u32(j)]
+    //                     } else {
+    //                         polyT.poly[poly.nPolys[i] - u32(j)] = poly.poly[np + u32(j)]
+    //                     }
+    //                 }
+    //                 pt1 := linalg.offsetPolygon(polyT.poly[0:poly.nPolys[i]], -poly.thickness[i], context.temp_allocator)
+    //                 defer delete(pt1, context.temp_allocator)
+    //                 pt2 := linalg.offsetPolygon(poly.poly[np:np + poly.nPolys[i]], -poly.thickness[i], context.temp_allocator)
+    //                 defer delete(pt2, context.temp_allocator)
+
+    //                 for &p, i in polyT.poly[0:poly.nPolys[i]] {
+    //                     p = pt1[i]
+    //                 }
+    //                 for &p, i in polyT.poly[poly.nPolys[i]:poly.nPolys[i] + poly.nPolys[i]] {
+    //                     p = pt2[i]
+    //                 }
+    //             }
+
+
+    //             polyT.colors = mem.make_non_zeroed_slice([]linalg.Point3DwF, 2, context.temp_allocator)
+    //             defer delete( polyT.colors, context.temp_allocator)
+    //             polyT.colors[0] = poly.strokeColors[i]
+    //             polyT.colors[1] = poly.strokeColors[i]
+
+    //             polyT.nPolys = mem.make_non_zeroed_slice([]u32, 2, context.temp_allocator)
+    //             defer delete( polyT.nPolys, context.temp_allocator)
+    //             polyT.nPolys[0] = poly.nPolys[i]
+    //             polyT.nPolys[1] = poly.nPolys[i]
+
+    //             polyT.nTypes = mem.make_non_zeroed_slice([]u32, 2, context.temp_allocator)
+    //             defer delete( polyT.nTypes, context.temp_allocator)
+    //             polyT.nTypes[0] = poly.nTypes[i]
+    //             polyT.nTypes[1] = poly.nTypes[i]
+
+    //             polyT.types = mem.make_non_zeroed_slice([]CurveType, poly.nTypes[i] * 2, context.temp_allocator)
+    //             defer delete( polyT.types, context.temp_allocator)
+
+    //             if ccw == .CounterClockwise {
+    //                 mem.copy_non_overlapping(&polyT.types[0], &poly.types[nt], size_of(CurveType) * int(poly.nTypes[i]))
+    //                 for j in int(poly.nTypes[i])..<int(poly.nTypes[i] * 2) {
+    //                     polyT.types[j] = poly.types[nt + (poly.nTypes[i] * 2 - u32(j) - 1)]
+    //                 }
+    //             } else {
+    //                 for j in 0..<int(poly.nTypes[i]) {
+    //                     polyT.types[j] = poly.types[nt + (poly.nTypes[i] - u32(j) - 1)]
+    //                 }
+    //                 mem.copy_non_overlapping(&polyT.types[poly.nTypes[i]], &poly.types[nt], size_of(CurveType) * int(poly.nTypes[i]))
+    //             }
+
+    //             err = Shapes_ComputePolygon_In(&vertList, &indList, &polyT, allocator)
+    //             if err != .None do return
+    //         }
+    //         np += poly.nPolys[i]
+    //         nt += poly.nTypes[i]
+    //     }
+    // }
 
     shrink(&vertList)
+    shrink(&indList)
     res.vertices = vertList[:]
+    res.indices = indList[:]
+
     return
 }
+
