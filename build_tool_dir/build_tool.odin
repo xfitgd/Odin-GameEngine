@@ -224,7 +224,7 @@ findGLSLFileAndRunCmd :: proc() -> bool {
 				defer delete(spvFile)
 				defer delete(glslFile)
 
-				if !runCmd({"C:\\VulkanSDK\\1.4.313.2\\Bin\\glslc", glslFile, "-O", "-o", spvFile}) do return false
+				if !runCmd({"glslc", glslFile, "-O", "-o", spvFile}) do return false
 				break
 			}
 		}
@@ -247,7 +247,8 @@ runCmd :: proc(cmd:[]string, env:[]string = nil) -> bool {
 	os2.close(w)
 
 	output, err2 := os2.read_entire_file_from_file(r, context.temp_allocator)
-	if err2 != nil do fmt.panicf("read_entire_file_from_file %v", err2)
+	//! Unknown Error in Windows, but works fine in Linux
+	//if err2 != nil do fmt.panicf("read_entire_file_from_file %s %v", err2, cmd) 
 
 	
 	if err != nil {
