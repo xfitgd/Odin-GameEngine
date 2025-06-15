@@ -193,7 +193,7 @@ main :: proc() {
 }
 
 findGLSLFileAndRunCmd :: proc() -> bool {
-	dir, err := os2.open(filepath.join({ODIN_ROOT, "/vendor/engine/shaders"}, context.temp_allocator))
+	dir, err := os2.open(filepath.join({ODIN_ROOT, "vendor/engine/shaders"}, context.temp_allocator))
 	if err != nil {
 		fmt.panicf("findGLSLFiles open ERR : %s", err)
 	}
@@ -219,12 +219,12 @@ findGLSLFileAndRunCmd :: proc() -> bool {
 
 		for vExt in glslExts {
 			if strings.compare(ext, vExt) == 0 {
-				spvFile := strings.join({ODIN_ROOT, "/vendor/engine/shaders/", file.name, ".spv"}, "")
-				glslFile := strings.join({ODIN_ROOT, "/vendor/engine/shaders/", file.name}, "")
+				spvFile := strings.join({ODIN_ROOT, "vendor/engine/shaders/", file.name, ".spv"}, "")
+				glslFile := strings.join({ODIN_ROOT, "vendor/engine/shaders/", file.name}, "")
 				defer delete(spvFile)
 				defer delete(glslFile)
 
-				if !runCmd({"glslc", glslFile, "-O", "-o", spvFile}) do return false
+				if !runCmd({"C:\\VulkanSDK\\1.4.313.2\\Bin\\glslc", glslFile, "-O", "-o", spvFile}) do return false
 				break
 			}
 		}
@@ -247,7 +247,7 @@ runCmd :: proc(cmd:[]string, env:[]string = nil) -> bool {
 	os2.close(w)
 
 	output, err2 := os2.read_entire_file_from_file(r, context.temp_allocator)
-	if err2 != nil do fmt.panicf("read_entire_file_from_file %v", err)
+	if err2 != nil do fmt.panicf("read_entire_file_from_file %v", err2)
 
 	
 	if err != nil {

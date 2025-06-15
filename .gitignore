@@ -299,3 +299,5 @@ misc/featuregen/featuregen
 
 ols
 build_tool
+
+*.spv
