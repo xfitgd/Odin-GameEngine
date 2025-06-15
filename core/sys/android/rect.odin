@@ -1,3 +1,4 @@
+#+build linux
 package android
 
 import "core:c"

@@ -1,3 +1,5 @@
+```odin
+#+build linux
 package mediandk
 
 /**
@@ -77,4 +79,5 @@ media_status_t :: enum {
     /** The media/buffer needs to be locked to perform the required operation. */
     AMEDIA_IMGREADER_IMAGE_NOT_LOCKED    = AMEDIA_IMGREADER_ERROR_BASE - 5,
 }
+```
 

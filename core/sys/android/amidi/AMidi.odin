@@ -1,3 +1,4 @@
+#+build linux
 package amidi
 
 foreign import amidi "system:amidi"

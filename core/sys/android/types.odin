@@ -1,3 +1,4 @@
+#+build linux
 package android
 
 off_t :: i64

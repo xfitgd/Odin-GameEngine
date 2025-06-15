@@ -1,3 +1,4 @@
+#+build linux
 package android
 
 foreign import android "system:android"
@@ -181,7 +182,8 @@ foreign android {
 	* The memory object is created with an uninitialized buffer. A memory object with an uninitialized
 	* buffer may only be used according to the roles specified by {@link
 	* ANeuralNetworksMemoryDesc_addOutputRole}, or as the destination memory in {@link
-	* ANeuralNetworksMemory_copy}. The buffer of a memory object is initialized after the memory object
+	* ANeuralNetworksMemory_copy}. The buffer of a memory object
+	* is initialized after the memory object
 	* is used as an output in a successful execution, or used as the destination memory in a successful
 	* {@link ANeuralNetworksMemory_copy}. A memory object with an initialized buffer may be used
 	* according to all roles specified in {@link ANeuralNetworksMemoryDesc}, or as the source or
