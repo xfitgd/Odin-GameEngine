@@ -139,19 +139,19 @@ when ODIN_DEBUG {
 	ICheckInit :: struct {
 		init: bool,
 	}
-	ICheckInit_Init :: proc "contextless" (t: ^ICheckInit) {
+	ICheckInit_Init :: #force_inline proc "contextless" (t: ^ICheckInit) {
 		t.init = true
 	}
-	ICheckInit_Check :: proc "contextless" (t: ^ICheckInit) {
+	ICheckInit_Check :: #force_inline proc "contextless" (t: ^ICheckInit) {
 		if !t.init do panic_contextless("ICheckInit_Check: uninitialized")
 	}
-	ICheckInit_Deinit :: proc "contextless" (t: ^ICheckInit) {
+	ICheckInit_Deinit :: #force_inline proc "contextless" (t: ^ICheckInit) {
 		if !t.init do panic_contextless("ICheckInit_Check: uninitialized")
 		t.init = false
 	}
 } else {
 	ICheckInit :: struct {}
-	ICheckInit_Init :: proc "contextless" (t: ^ICheckInit) {}
-	ICheckInit_Check :: proc "contextless" (t: ^ICheckInit) {}
-	ICheckInit_Deinit :: proc "contextless" (t: ^ICheckInit) {}
+	ICheckInit_Init :: #force_inline proc "contextless" (t: ^ICheckInit) {}
+	ICheckInit_Check :: #force_inline proc "contextless" (t: ^ICheckInit) {}
+	ICheckInit_Deinit :: #force_inline proc "contextless" (t: ^ICheckInit) {}
 }

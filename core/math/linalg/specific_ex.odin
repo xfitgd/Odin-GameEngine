@@ -397,3 +397,20 @@ OppPolyOrientation :: #force_inline proc "contextless" (ccw:PolyOrientation) -> 
 MirrorPoint :: #force_inline proc "contextless" (pivot : [2]$T, target : [2]T) -> [2]T where intrinsics.type_is_float(T) {
 	return [2]T{2,2} * pivot - target
 }
+
+Area :: union($T: typeid) where intrinsics.type_is_numeric(T)  {
+	Rect_(T),
+	[][2]T,
+}
+
+AreaF :: Area(f32)
+AreaF64 :: Area(f64)
+AreaI :: Area(i32)
+
+Area_PointIn :: #force_inline proc "contextless" (area:Area($T), pt:[2]T) -> bool where intrinsics.type_is_numeric(T) {
+	switch a in area {
+		case Rect_(T):return Rect_PointIn(a, pt)
+		case [][2]T:return PointInPolygon(pt, a)
+	}
+	return false
+}

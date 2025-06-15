@@ -73,8 +73,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 }
 
 _Super_Shape_Deinit :: proc(self:^Shape) {
-    mem.ICheckInit_Deinit(&self.checkInit)
-    VkBufferResource_Deinit(&self.matUniform)
+    _Super_IObject_Deinit(auto_cast self)
 }
 
 Shape_UpdateSrc :: #force_inline proc "contextless" (self:^Shape, src:^ShapeSrc) {

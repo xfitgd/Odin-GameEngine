@@ -241,6 +241,11 @@ IObject_Init :: proc(self:^IObject, $actualType:typeid,
     self.actualType = actualType
 }
 
+_Super_IObject_Deinit :: #force_inline proc (self:^IObject) {
+    mem.ICheckInit_Deinit(&self.checkInit)
+    VkBufferResource_Deinit(&self.matUniform)
+}
+
 IObject_Init2 :: proc(self:^IObject, $actualType:typeid,
     camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil)
     where actualType != IObject && intrinsics.type_is_subtype_of(actualType, IObject) {

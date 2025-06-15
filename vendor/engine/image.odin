@@ -49,7 +49,7 @@ TileTextureArray :: struct {
 }
 
 Image :: struct {
-    using object:IObject,
+    using _:IObject,
     using _: __ImageIn,
 }
 
@@ -127,7 +127,6 @@ colorTransform:^ColorTransform = nil, vtable:^IObjectVTable = nil) where intrins
 
 _Super_Image_Deinit :: proc(self:^Image) {
     mem.ICheckInit_Deinit(&self.checkInit)
-    VkBufferResource_Deinit(&self.matUniform)
 }
 
 Image_GetTexture :: #force_inline proc "contextless" (self:^Image) -> ^Texture {
@@ -165,9 +164,13 @@ _Super_Image_Draw :: proc (self:^Image, cmd:vk.CommandBuffer) {
     mem.ICheckInit_Check(&self.checkInit)
     mem.ICheckInit_Check(&self.src.checkInit)
 
-    vk.CmdBindPipeline(cmd, .GRAPHICS, vkTexPipeline)
+   _Image_BindingSetsAndDraw(cmd, self.set, self.src.set)
+}
+
+_Image_BindingSetsAndDraw :: proc "contextless" (cmd:vk.CommandBuffer, imageSet:VkDescriptorSet, textureSet:VkDescriptorSet) {
+     vk.CmdBindPipeline(cmd, .GRAPHICS, vkTexPipeline)
     vk.CmdBindDescriptorSets(cmd, .GRAPHICS, vkTexPipelineLayout, 0, 2, 
-        &([]vk.DescriptorSet{self.set.__set, self.src.set.__set})[0], 0, nil)
+        &([]vk.DescriptorSet{imageSet.__set, textureSet.__set})[0], 0, nil)
 
     vk.CmdDraw(cmd, 6, 1, 0, 0)
 }
@@ -216,8 +219,7 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 }   
 
 _Super_AnimateImage_Deinit :: proc(self:^AnimateImage) {
-    mem.ICheckInit_Deinit(&self.checkInit)
-    VkBufferResource_Deinit(&self.matUniform)
+     _Super_IObject_Deinit(auto_cast self)
 }
 
 
@@ -309,7 +311,6 @@ camera:^Camera, projection:^Projection, colorTransform:^ColorTransform = nil, vt
 
 _Super_TileImage_Deinit :: proc(self:^TileImage) {
     mem.ICheckInit_Deinit(&self.checkInit)
-    VkBufferResource_Deinit(&self.matUniform)
 }
 
 TileImage_GetTileTextureArray :: #force_inline proc "contextless" (self:^TileImage) -> ^TileTextureArray {
